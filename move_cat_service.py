@@ -2,18 +2,17 @@
 
 import pagegenerators, re, datetime, sys, catlib, userlib, category, time, os
 import wikipedia as pywikibot
-from pywikibot import i18n
 
 # constant
-PAGEMAIN = u"ผู้ใช้:Nullzerobot/บริการย้ายหมวดหมู่"
-PAGEPENDING = u"ผู้ใช้:Nullzerobot/บริการย้ายหมวดหมู่/หมวดหมู่ที่รอการพิจารณา"
-PAGEREPORT =  u"ผู้ใช้:Nullzerobot/รายงาน/บริการย้ายหมวดหมู่"
+USER = u"ผู้ใช้:Nullzerobot"
+PAGEMAIN = USER + "/บริการย้ายหมวดหมู่"
+PAGEPENDING = USER + u"/บริการย้ายหมวดหมู่/หมวดหมู่ที่รอการพิจารณา"
+PAGEREPORT =  USER + u"/รายงาน/บริการย้ายหมวดหมู่"
 SIMULATE = False
 VERIFYEDITCOUNT = 50
 VERIFYTIME = 300000000
 DONOTMOVE = False
 FLUSHPENDING = u"-pending"
-LOGPATH = "/home/nullzero/pywikipedia/logs/automovelog.txt"
 # end constant
 
 site = pywikibot.getSite()
@@ -21,7 +20,7 @@ site = pywikibot.getSite()
 def domove(source, dest):
     if DONOTMOVE: return None
     robot = category.CategoryMoveRobot(source, dest, batchMode=True,
-editSummary=u"", inPlace=False, titleRegex=None, withHistory=False)
+        editSummary=u"", inPlace=False, titleRegex=None, withHistory=False)
     robot.run()
     pageCat = pywikibot.Page(site, u"หมวดหมู่:" + source)
     pageCat.put(u"{{ลบ|บอตย้ายหมวดหมู่ไป[[:หมวดหมู่:" + dest + u"]] แล้ว}}", u"ย้ายหมวดหมู่โดยบอต")
@@ -50,7 +49,9 @@ def catempty(title, flag):
     return len(listOfArticles) == 0
 
 def main(*args):
-    os.system("echo \"run at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\" >> " + LOGPATH)
+    pywikibot.output(u"move-category service is invoked. (%s)" % 
+        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        
     flag = False
     pageprocess = None
     if (len(pywikibot.handleArgs(*args)) > 0) and (pywikibot.handleArgs(*args)[0] == FLUSHPENDING):
@@ -59,13 +60,9 @@ def main(*args):
     else:
         pageprocess = PAGEMAIN
 
-    argument = u"-log"
-    if(SIMULATE): argument += u" -simulate"
-    pywikibot.handleArgs(argument)
     pageMain = pywikibot.Page(site, pageprocess)
     text = pageMain.get(get_redirect = True)
-    splitlist = text.split(u'-->')
-    pre, post = splitlist
+    pre, post = text.split(u'-->')
     pre += u'-->'
     text = post
 
@@ -130,14 +127,22 @@ def main(*args):
         text = pattern.sub(u"", text, 1)
         text += pending
         pagePending.put(text, summary)
-    
-    os.system("echo \"move at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\" >> " + LOGPATH)
-    pywikibot.stopme()
+        
+    pywikibot.output(u"I have moved categories (%s)" % 
+        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
 if __name__ == "__main__":
+    argument = u"-log"
+    if(SIMULATE): argument += u" -simulate"
+    pywikibot.handleArgs(argument)
+    
     try:
         lockfile = os.popen('ls automovecat.lock 2> /dev/null').read()
-        if lockfile != "": sys.exit()
+        
+        if lockfile != "":
+            pywikibot.output(u"This script is locked")
+            sys.exit()
+            
         os.system('echo > automovecat.lock')
         main()
     finally:
