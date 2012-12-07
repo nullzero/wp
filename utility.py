@@ -32,7 +32,7 @@ except IOError:
     # TMP
     putdata("TMP",
         None,
-        "/tmp/")
+        data = "/tmp/")
     # ...
     with open(DATACONFIG, 'r') as fin:
         read_data = fin.readlines()
