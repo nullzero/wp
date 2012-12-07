@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import utility
 import wikipedia as pywikibot
 
 pywikibot.handleArgs(u"-log")

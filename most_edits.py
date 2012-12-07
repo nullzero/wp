@@ -1,5 +1,6 @@
 # -*- coding: utf-8  -*-
 
+import utility
 import wikipedia as pywikibot
 import pagegenerators, query, sys, datetime
 
