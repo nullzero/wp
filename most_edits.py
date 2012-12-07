@@ -15,6 +15,7 @@ site = pywikibot.getSite()
 
 def trimbot(data):
     appendlist = []
+    
     for i in data:
         if 'bot' not in i['groups']:
             appendlist.append(i)
@@ -24,6 +25,7 @@ def trimbot(data):
 def dowrite(path, data):
     puttext = u"ปรับปรุงล่าสุด %s\n\n{{/begin|500}}\n" % datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     cnt = 1
+    
     for i in data:
         s = u"|-\n| %d || [[User:%s|%s]] %s %s || [[Special:Contributions/%s|%s]]\n" % (
             cnt, 
@@ -42,8 +44,7 @@ def dowrite(path, data):
     
     pre, post = gettext.split(u'{{/end}}')
     
-    summary = u'ปรับปรุงรายการ'
-    page.put(puttext + u"{{/end}}\n" + post, summary)
+    page.put(puttext + u"{{/end}}\n" + post, u'ปรับปรุงรายการ')
     pywikibot.output(u"done!")
     
 def main():
@@ -59,42 +60,34 @@ def main():
     }
     
     loop = 0
-
-    try:
-        getdata = query.GetData(params, site)
-    except:
-        getdata = None
         
-    while getdata != None:
+    while True:
+        try: getdata = query.GetData(params, site)
+        except: break
+            
         includebot += getdata['query']['allusers']
         excludebot += trimbot(getdata['query']['allusers'])
+        
         print loop, getdata['query']['allusers'][0]['name']
+        
         loop += 1
+        
+        try: params['aufrom'] = getdata['query-continue']['allusers']['aufrom']
+        except: break
         
         if loop % CONST == 0:
             includebot.sort(key = lambda datall: int(datall['editcount']), reverse = True)
             excludebot.sort(key = lambda datall: int(datall['editcount']), reverse = True)
+            
             del includebot[LIMIT:]
             del excludebot[LIMIT:]
-        
-        try: nextdata = getdata['query-continue']['allusers']['aufrom']
-        except: break
-        
-        params = {
-            'action'  : 'query',
-            'list'    : 'allusers',
-            'aulimit' : NUMQUERY,
-            'aufrom'  : nextdata,
-            'auprop'  : 'editcount|groups',
-        }
-        
-        try: getdata = query.GetData(params, site)
-        except: getdata = None
             
     includebot.sort(key = lambda datall: int(datall['editcount']), reverse = True)
     excludebot.sort(key = lambda datall: int(datall['editcount']), reverse = True)
+    
     del includebot[LIMIT:]
     del excludebot[LIMIT:]
+    
     dowrite(PATH + BOTSUFFIX, includebot)
     dowrite(PATH, excludebot)
     
