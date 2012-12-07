@@ -22,11 +22,12 @@ def trimbot(data):
     return appendlist
 
 def dowrite(path, data):
-    puttext = u"ปรับปรุงล่าสุด %s\n{{/begin|500}}\n" % datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    puttext = u"ปรับปรุงล่าสุด %s\n\n{{/begin|500}}\n" % datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     cnt = 1
     for i in data:
-        s = u"|-\n| %d || [[User:%s]] %s %s || [[Special:Contributions/%s|%s]]\n" % (
+        s = u"|-\n| %d || [[User:%s|%s]] %s %s || [[Special:Contributions/%s|%s]]\n" % (
             cnt, 
+            i['name'], 
             i['name'], 
             '(Admin)' if ('sysop' in i['groups']) else '', 
             '(Bot)' if ('bot' in i['groups']) else '', 
@@ -36,8 +37,6 @@ def dowrite(path, data):
         puttext += s
         cnt += 1
     
-    print puttext, path
-    
     page = pywikibot.Page(site, path)
     gettext = page.get(get_redirect = True)
     
@@ -45,9 +44,10 @@ def dowrite(path, data):
     
     summary = u'ปรับปรุงรายการ'
     page.put(puttext + u"{{/end}}\n" + post, summary)
+    pywikibot.output(u"done!")
     
 def main():
-    site = pywikibot.getSite()
+    pywikibot.output(u"start!")
     includebot = []
     excludebot = []
 
@@ -100,6 +100,7 @@ def main():
     
 if __name__ == "__main__":
     try:
+        pywikibot.handleArgs(u"-log")
         main()
     finally:
         pywikibot.stopme()
