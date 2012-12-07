@@ -4,6 +4,8 @@ import utility
 import pagegenerators, re, datetime, sys, catlib, userlib, category, time, os
 import wikipedia as pywikibot
 
+env = utility.env
+
 # constant
 USER = u"ผู้ใช้:Nullzerobot"
 PAGEMAIN = USER + u"/บริการย้ายหมวดหมู่"
@@ -14,6 +16,7 @@ VERIFYEDITCOUNT = 50
 VERIFYTIME = 300000000
 DONOTMOVE = False
 FLUSHPENDING = u"-pending"
+LOCKFILE = 'movecat.lock'
 # end constant
 
 site = pywikibot.getSite()
@@ -50,7 +53,7 @@ def catempty(title, flag):
     return len(listOfArticles) == 0
 
 def main(*args):
-    pywikibot.output(u"move-category service is invoked. (%s)" % 
+    pywikibot.output(u"Move-category service is invoked. (%s)" % 
         datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         
     flag = False
@@ -129,7 +132,7 @@ def main(*args):
         text += pending
         pagePending.put(text, summary)
         
-    pywikibot.output(u"I have moved categories (%s)" % 
+    pywikibot.output(u"Moved categories. (%s)" % 
         datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
 if __name__ == "__main__":
@@ -138,14 +141,14 @@ if __name__ == "__main__":
     pywikibot.handleArgs(argument)
     
     try:
-        lockfile = os.popen('ls automovecat.lock 2> /dev/null').read()
-        
-        if lockfile != "":
-            pywikibot.output(u"This script is locked")
+        if os.path.exists(env['TMP'] + LOCKFILE):
+            pywikibot.output(u"This script is locked.")
+            pywikibot.stopme()
             sys.exit()
-            
-        os.system('echo > automovecat.lock')
+        
+        open(env['TMP'] + LOCKFILE, 'w').close() 
         main()
     finally:
+        try: os.remove(env['TMP'] + LOCKFILE)
+        except: pywikibot.output("Can't remove lockfile.")
         pywikibot.stopme()
-        os.system('rm automovecat.lock')
