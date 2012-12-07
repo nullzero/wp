@@ -1,6 +1,6 @@
 import sys, os
 
-DATA = './config/path.cfg'
+DATACONFIG = './config/data.cfg'
 
 def putdata(prompt, checkFunc, key):
     while True:
@@ -8,20 +8,29 @@ def putdata(prompt, checkFunc, key):
         if checkFunc(data): break
         print "Error!"
     
-    with open(PATHCONFIG, 'a') as fout
-        fout.write(key + ": " + data)
-
-def checkPath(path): return os.path.exists(path + 'login.py')
+    with open(DATACONFIG, 'a') as fout:
+        fout.write(key + ": " + data + "\n")
 
 # ---
 
 try: 
-    with open(PATHCONFIG, 'r') as fin:
+    with open(DATACONFIG, 'r') as fin:
         read_data = fin.readlines()
 except IOError:
-    putdata("Enter Pywikibot path: ", checkPath, "BASEPATH")
+    # BASEPATH
+    putdata("Enter Pywikibot path: ", 
+        lambda path: os.path.exists(path + 'login.py'), 
+        "BASEPATH")
+    # USERNAME
+    putdata("Enter username: ", 
+        lambda user: True, 
+        "USER")
+    # PASSWORD
+    putdata("Enter password: ", 
+        lambda passwd: True, 
+        "PASS")
     # ...
-    with open(PATHCONFIG, 'r') as fin:
+    with open(DATACONFIG, 'r') as fin:
         read_data = fin.readlines()
 
 env = {}
@@ -30,4 +39,3 @@ for line in read_data:
     env[key] = value
 
 sys.path.append(env['BASEPATH'])
-
