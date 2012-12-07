@@ -6,7 +6,7 @@ import wikipedia as pywikibot
 
 # constant
 USER = u"ผู้ใช้:Nullzerobot"
-PAGEMAIN = USER + "/บริการย้ายหมวดหมู่"
+PAGEMAIN = USER + u"/บริการย้ายหมวดหมู่"
 PAGEPENDING = USER + u"/บริการย้ายหมวดหมู่/หมวดหมู่ที่รอการพิจารณา"
 PAGEREPORT =  USER + u"/รายงาน/บริการย้ายหมวดหมู่"
 SIMULATE = False

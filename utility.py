@@ -1,6 +1,6 @@
 import sys, os
 
-DATACONFIG = os.path.dirname(sys.argv[0]) + '/config/data.cfg'
+DATACONFIG = os.path.dirname(os.path.join(sys.path[0], sys.argv[0])) + '/config/data.cfg'
 
 def putdata(prompt, checkFunc, key):
     while True:
