@@ -1,0 +1,4 @@
+0 */1 * * * python /home/nullzero/wp/move_cat_service.py
+0 */6 * * * python /home/nullzero/wp/clear_sandbox.py
+0 0 */1 * * python /home/nullzero/wp/uncategorize.py
+0 0 15 * * python /home/nullzero/wp/most_edits.py  

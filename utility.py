@@ -158,13 +158,9 @@ import wikipedia as pywikibot
 
 site = pywikibot.getSite()
 if not site.loggedInAs(sysop = env['SYSOP']):
-    import subprocess, shlex
     pywikibot.output("I have not logged in yet!")
+    import shlex, subprocess
     args = shlex.split('python ' + os.path.join(env['BASEPATH'], 'login.py') + ' -pass:' + env['PASS'])
     process = subprocess.call(args)
     pywikibot.output("Just logged in.")
     pywikibot.output("Call me again!")
-    args = shlex.split('mutt -s "Cannot login!" nullzero.free@gmail.com')
-    process = subprocess.Popen(args, stdout=PIPE, stdin=PIPE, stderr=STDOUT)
-    process.communicate(input='wikipedia@tucc cannot login! please login as soon as possible')
-    sys.exit()
