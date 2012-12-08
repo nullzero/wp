@@ -2,7 +2,7 @@
 
 import utility
 import wikipedia as pywikibot
-import pagegenerators, query, sys, datetime
+import pagegenerators, query, sys, datetime, re
 
 # constant
 LIMIT = 500
@@ -13,20 +13,11 @@ BOTSUFFIX = u"_(รวมบอต)"
 # end constant
 
 site = pywikibot.getSite()
-
-globalparams = {
-    'action'  : 'query',
-    'meta'    : 'globaluserinfo',
-    'guiprop' : 'groups'
-}
+pbot = re.compile('^(.*(บอต|bot)|(บอต|bot).*)$', re.IGNORECASE)
 
 def isbot(data):
     if 'bot' in data['groups']: return True
-    globalparams['guiuser'] = data['name']
-    try: getdata = query.GetData(globalparams, site)
-    except: return False
-    try: return 'Global_bot' in getdata['query']['globaluserinfo']['groups']
-    except: return False
+    return pbot.match(data['name'])
 
 def trimbot(data):
     appendlist = []
