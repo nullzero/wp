@@ -1,4 +1,6 @@
-import utility
+# -*- coding: utf-8  -*-
+
+import utility, re
 
 EXCLUDEQUOTE = True
 

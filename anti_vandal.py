@@ -3,14 +3,10 @@
 import utility
 import sys, re, string, os
 from pagegenerators import NewpagesPageGenerator
-from BeautifulSoup import BeautifulSoup
-from random import randint
 import wikipedia as pywikibot
+import miscellaneous
 
 env = utility.env
-# predefine
-
-# end predefine
 
 # constant
 NUMOFNEWPAGE = 5
@@ -58,4 +54,4 @@ if __name__ == "__main__":
                 f.write(page.title().encode("utf8"))
             
             page.put(u"{{ลบ|บอตแจ้งก่อกวนหรือไม่เป็นสารานุกรม}}\n" + original_content, 
-            u"บอตแจ้งก่อกวนหรือไม่เป็นสารานุกรม หากผิดพลาด โปรดแจ้ง[[คุยกับผู้ใช้:Nullzero|ที่นี่]]")
+            u"บอตแจ้งก่อกวนหรือไม่เป็นสาราฯ หากเกิดข้อผิดพลาด โปรดแจ้ง[[คุยกับผู้ใช้:Nullzero|ที่นี่]]")
