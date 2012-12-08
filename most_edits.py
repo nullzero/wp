@@ -14,11 +14,24 @@ BOTSUFFIX = u"_(รวมบอต)"
 
 site = pywikibot.getSite()
 
+globalparams = {
+    'action'  : 'query',
+    'meta'    : 'globaluserinfo',
+    'guiprop' : 'groups'
+}
+
+def isbot(data):
+    if 'bot' in data['groups']: return True
+    globalparams['guiuser'] = data['name']
+    try: getdata = query.GetData(globalparams, site)
+    except: return False
+    return 'Global_bot' in getdata['query']['globaluserinfo']['groups']
+
 def trimbot(data):
     appendlist = []
     
     for i in data:
-        if 'bot' not in i['groups']:
+        if not isbot(i):
             appendlist.append(i)
     
     return appendlist
@@ -91,7 +104,7 @@ def main():
     
     dowrite(PATH + BOTSUFFIX, includebot)
     dowrite(PATH, excludebot)
-    
+
 if __name__ == "__main__":
     try:
         pywikibot.handleArgs(u"-log")
