@@ -4,6 +4,10 @@ import utility
 import wikipedia as pywikibot
 
 pywikibot.handleArgs(u"-log")
+
+pywikibot.output(u"'Clear-sandbox' is invoked. (%s)" % 
+        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        
 vlist = []
 vlist.append(u"วิกิพีเดีย:สอนการใช้งาน_(จัดรูปแบบ)/กระดาษทด")
 vlist.append(u"วิกิพีเดีย:สอนการใช้งาน_(แหล่งข้อมูลอื่น)/กระดาษทด")
@@ -17,5 +21,8 @@ text = u"{{ทดลองเขียน}}<!-- กรุณาอย่าแ�
 for i in vlist:
     page = pywikibot.Page(site, i)
     page.put(text, u"ล้างหน้าอัตโนมัติด้วยบอต")
+
+pywikibot.output(u"'Clear-sandbox' terminated. (%s)" % 
+        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
 pywikibot.stopme()

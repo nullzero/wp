@@ -55,7 +55,8 @@ def dowrite(path, data):
     pywikibot.output(u"done!")
     
 def main():
-    pywikibot.output(u"start!")
+    pywikibot.output(u"'Most-edits' is invoked. (%s)" % 
+        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     includebot = []
     excludebot = []
 
@@ -75,7 +76,8 @@ def main():
         includebot += getdata['query']['allusers']
         excludebot += trimbot(getdata['query']['allusers'])
         
-        print loop, getdata['query']['allusers'][0]['name']
+        pywikibot.output("%d" % loop)
+        pywikibot.output(getdata['query']['allusers'][0]['name'])
         
         loop += 1
         
@@ -97,6 +99,9 @@ def main():
     
     dowrite(PATH + BOTSUFFIX, includebot)
     dowrite(PATH, excludebot)
+    
+    pywikibot.output(u"'Most-edits' terminated. (%s)" % 
+        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
 if __name__ == "__main__":
     try:
