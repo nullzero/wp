@@ -4,12 +4,12 @@ import utility
 import sys, re, string, os
 from pagegenerators import NewpagesPageGenerator
 import wikipedia as pywikibot
-import miscellaneous
+from miscellaneous import remove_wikicode, skip_section
 
 env = utility.env
 
 # constant
-NUMOFNEWPAGE = 5
+NUMOFNEWPAGE = 10
 # end constant
     
 def checkVandal(content):
@@ -51,7 +51,7 @@ if __name__ == "__main__":
             pywikibot.output(page.title() + u" is vandal!!")
             
             with open(os.path.join(env['WORKPATH'], 'av.reqdel'), "a") as f:
-                f.write(page.title().encode("utf8"))
+                f.write(page.title().encode("utf8") + '\n')
             
             page.put(u"{{ลบ|บอตแจ้งก่อกวนหรือไม่เป็นสารานุกรม}}\n" + original_content, 
             u"บอตแจ้งก่อกวนหรือไม่เป็นสาราฯ หากเกิดข้อผิดพลาด โปรดแจ้ง[[คุยกับผู้ใช้:Nullzero|ที่นี่]]")
