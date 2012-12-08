@@ -25,7 +25,8 @@ def isbot(data):
     globalparams['guiuser'] = data['name']
     try: getdata = query.GetData(globalparams, site)
     except: return False
-    return 'Global_bot' in getdata['query']['globaluserinfo']['groups']
+    try: return 'Global_bot' in getdata['query']['globaluserinfo']['groups']
+    except: return False
 
 def trimbot(data):
     appendlist = []
