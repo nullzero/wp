@@ -152,4 +152,5 @@ if __name__ == "__main__":
     finally:
         try: os.remove(lockfile)
         except: pywikibot.output("Can't remove lockfile.")
+        pywikibot.output("Bye")
         pywikibot.stopme()

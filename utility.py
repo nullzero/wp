@@ -109,7 +109,10 @@ def loadConfig():
     env = {}
     for line in read_data:
         key, value = line.strip().split(': ')
+        
         if key == 'SYSOP': value = (value == 'y')
+        if key == 'BASEPATH': value = simplifypath(value)
+        
         env[key] = value
     return env
     
@@ -123,6 +126,9 @@ def putdata(key, prompt = None, checkFunc = lambda func: True, data = None):
     with open(DATACONFIG, 'a') as fout:
         fout.write(key + ": " + data + "\n")
 
+def simplifypath(path):
+    return os.path.abspath(os.path.expanduser(path))
+
 # ---
 
 try: open(DATACONFIG, 'r').close()
@@ -130,7 +136,7 @@ except IOError:
     # BASEPATH
     putdata("BASEPATH",
         "Enter Pywikibot path: ", 
-        lambda path: os.path.exists(os.path.join(path, 'login.py')),
+        lambda path: os.path.exists(simplifypath(os.path.join(path, 'login.py'))),
         )
     # USERNAME
     putdata("USER", "Enter username: ")
@@ -147,6 +153,7 @@ sys.path.append(env['BASEPATH'])
 
 if not os.path.exists(os.path.join(env['BASEPATH'], 'user-config.py')):
     create_user_config(env['BASEPATH'], env['USER'])
+    env = loadConfig()
 
 import wikipedia as pywikibot
 import login
