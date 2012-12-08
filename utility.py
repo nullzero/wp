@@ -115,7 +115,7 @@ def loadConfig():
         env[key] = value
     return env
     
-def putdata(key, prompt = None, checkFunc = lambda func: True, data = None):
+def putdata(key, prompt = None, checkFunc = lambda func: True, data = None, parser = lambda dat: dat):
     if prompt is not None:
         while True:
             data = raw_input(prompt)
@@ -123,7 +123,7 @@ def putdata(key, prompt = None, checkFunc = lambda func: True, data = None):
             print "Error!"
     
     with open(DATACONFIG, 'a') as fout:
-        fout.write(key + ": " + data + "\n")
+        fout.write(key + ": " + parser(data) + "\n")
 
 def simplifypath(path):
     return os.path.abspath(os.path.expanduser(path))
@@ -134,7 +134,8 @@ except IOError:
     # BASEPATH
     putdata("BASEPATH",
         "Enter Pywikibot path: ", 
-        lambda path: os.path.exists(simplifypath(os.path.join(path, 'login.py'))))
+        lambda path: os.path.exists(simplifypath(os.path.join(path, 'login.py'))),
+        parser = lambda path: simplifypath(path))
     # USERNAME
     putdata("USER", "Enter username: ")
     # PASSWORD
@@ -144,7 +145,7 @@ except IOError:
     # TMP
     putdata("TMP", data = "/tmp")
     # WORKPATH
-    putdata("WORKPATH", data = os.path.abspath(os.path.dirname(__file__)))
+    putdata("WORKPATH", data = simplifypath(os.path.dirname(__file__)))
     # ...
 
 env = loadConfig()
