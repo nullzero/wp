@@ -139,16 +139,17 @@ if __name__ == "__main__":
     argument = u"-log"
     if(SIMULATE): argument += u" -simulate"
     pywikibot.handleArgs(argument)
+    lockfile = os.path.join(env['TMP'], LOCKFILE)
     
     try:
-        if os.path.exists(env['TMP'] + LOCKFILE):
+        if os.path.exists(lockfile):
             pywikibot.output(u"This script is locked.")
             pywikibot.stopme()
             sys.exit()
         
-        open(env['TMP'] + LOCKFILE, 'w').close() 
+        open(lockfile, 'w').close() 
         main()
     finally:
-        try: os.remove(env['TMP'] + LOCKFILE)
+        try: os.remove(lockfile)
         except: pywikibot.output("Can't remove lockfile.")
         pywikibot.stopme()

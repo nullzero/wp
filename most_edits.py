@@ -17,7 +17,8 @@ pbot = re.compile('^(.*(บอต|bot)|(บอต|bot).*)$', re.IGNORECASE)
 
 def isbot(data):
     if 'bot' in data['groups']: return True
-    return pbot.match(data['name'])
+    if data['name'] == u'New user message': return True
+    return pbot.match(data['name']) is not None
 
 def trimbot(data):
     appendlist = []
