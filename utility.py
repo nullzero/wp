@@ -1,6 +1,8 @@
+# -*- coding: utf-8  -*-
+
 import codecs, os, re, sys
 
-DATACONFIG = os.path.join(os.path.dirname(os.path.join(sys.path[0], sys.argv[0])), 'config/data.cfg')
+DATACONFIG = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'config/data.cfg')
 
 console_encoding = sys.stdout.encoding
 
@@ -100,9 +102,6 @@ usernames['%s']['%s'] = u'%s'
 """ % (fam, mylang, fam, mylang, username))
     f.close()
     print("'%s' written." % _fnc)
-    
-    putdata("FAM", data = fam)
-    putdata("LANG", data = mylang)
 
 def loadConfig():
     with open(DATACONFIG, 'r') as fin: read_data = fin.readlines()
@@ -136,8 +135,7 @@ except IOError:
     # BASEPATH
     putdata("BASEPATH",
         "Enter Pywikibot path: ", 
-        lambda path: os.path.exists(simplifypath(os.path.join(path, 'login.py'))),
-        )
+        lambda path: os.path.exists(simplifypath(os.path.join(path, 'login.py'))))
     # USERNAME
     putdata("USER", "Enter username: ")
     # PASSWORD
@@ -146,6 +144,8 @@ except IOError:
     putdata("SYSOP", "Are you a sysop (y/n): ", lambda ans: ans in "yn")
     # TMP
     putdata("TMP", data = "/tmp")
+    # WORKPATH
+    putdata("WORKPATH", data = os.path.abspath(os.path.dirname(__file__)))
     # ...
 
 env = loadConfig()
