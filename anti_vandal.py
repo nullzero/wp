@@ -1,7 +1,7 @@
 #-*-coding: utf-8 -*-
 
 import utility
-import sys, urllib2, urllib, re, string
+import sys, urllib2, urllib, re, string, os
 from pagegenerators import NewpagesPageGenerator
 from BeautifulSoup import BeautifulSoup
 from random import randint
@@ -265,7 +265,7 @@ def cut_section(text, sectC):
 # end predefine
 
 # constant
-NUMOFNEWPAGE = 10
+NUMOFNEWPAGE = 5
 # end constant
     
 def checkVandal(content):
@@ -309,7 +309,7 @@ if __name__ == "__main__":
             pywikibot.output(page.title() + u" is vandal!!")
             
             with open(os.path.join(env['WORKPATH'], 'havechecked.txt'), "a") as f:
-                f.write(page.title())
+                f.write(page.title().encode("utf8"))
             
             page.put(u"{{ลบ|บอตแจ้งก่อกวนหรือไม่เป็นสารานุกรม}}", 
-            u"บอตก่อกวนหรือไม่เป็นสารานุกรม หากผิดพลาด โปรดแจ้ง[[คุยกับผู้ใช้:Nullzero|ที่นี่]]")
+            u"บอตแจ้งก่อกวนหรือไม่เป็นสารานุกรม หากผิดพลาด โปรดแจ้ง[[คุยกับผู้ใช้:Nullzero|ที่นี่]]")
