@@ -129,7 +129,6 @@ def simplifypath(path):
     return os.path.abspath(os.path.expanduser(path))
 
 # ---
-
 try: open(DATACONFIG, 'r').close()
 except IOError:
     # BASEPATH
@@ -156,10 +155,16 @@ if not os.path.exists(os.path.join(env['BASEPATH'], 'user-config.py')):
     env = loadConfig()
 
 import wikipedia as pywikibot
-import login
 
-if not pywikibot.getSite().loggedInAs(sysop = env['SYSOP']):
-    pywikibot.output("I haven't login yet!")
-    loginMan = login.LoginManager(env['PASS'], sysop = env['SYSOP'])
-    loginMan.login()
-    pywikibot.output("Login!")
+site = pywikibot.getSite()
+if not site.loggedInAs(sysop = env['SYSOP']):
+    import subprocess, shlex
+    pywikibot.output("I have not logged in yet!")
+    args = shlex.split('python ' + os.path.join(env['BASEPATH'], 'login.py') + ' -pass:' + env['PASS'])
+    process = subprocess.call(args)
+    pywikibot.output("Just logged in.")
+    pywikibot.output("Call me again!")
+    args = shlex.split('mutt -s "Cannot login!" nullzero.free@gmail.com')
+    process = subprocess.Popen(args, stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+    process.communicate(input='wikipedia@tucc cannot login! please login as soon as possible')
+    sys.exit()
