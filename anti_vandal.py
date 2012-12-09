@@ -9,7 +9,7 @@ from miscellaneous import remove_wikicode, skip_section
 env = utility.env
 
 # constant
-NUMOFNEWPAGE = 10
+NUMOFNEWPAGE = 50
 # end constant
     
 def checkVandal(content):
@@ -35,6 +35,9 @@ if __name__ == "__main__":
             error("Page %s has no section %s"
                   % (page.title(), page.section()))
             continue
+        
+        pat_reqdel = re.compile("\{\{(ลบ|delete).*?\}\}")
+        if pat_reqdel.search(original_content) is not None: continue
 
         clist = remove_wikicode(skip_section(original_content)).splitlines()
         content = u""

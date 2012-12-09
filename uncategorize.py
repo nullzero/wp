@@ -1,7 +1,7 @@
 # -*- coding: utf-8  -*-
 
 import utility
-import subprocess, shlex, os
+import datetime, subprocess, shlex, os
 import wikipedia as pywikibot
 
 pywikibot.handleArgs(u"-log")
