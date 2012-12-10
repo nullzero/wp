@@ -11,7 +11,7 @@ from miscellaneous import remove_wikicode, skip_section
 
 env = utility.env
 
-NUMOFNEWPAGE = 10
+NUMOFNEWPAGE = 20
 CHECKEDFILE = os.path.join(env['WORKPATH'], 'av.checked')
 GOODMANFILE = os.path.join(env['WORKPATH'], 'av.goodman')
 
@@ -64,24 +64,11 @@ if __name__ == "__main__":
     site = pywikibot.getSite()
     generator = MyNewpagesPageGenerator(number = NUMOFNEWPAGE)
     
-    checkedList = readfile(CHECKEDFILE)
     goodManList = readfile(GOODMANFILE)
     
     for page, username in generator:
         pywikibot.output(u"I am checking " + page.title() + u" by user " + username)
-        
-        """
-        if page.title().encode("utf8") in checkedList:
-            print page.title().encode("utf8")
-            pywikibot.output(u"Skip! I have already checked.")
-            break
-        
-        # {{done}}
-        with open(os.path.join(env['WORKPATH'], CHECKEDFILE), "a") as f:
-                f.write(page.title().encode("utf8") + '\n')
-        """
-        
-        # {{done}}
+            
         if username.encode("utf8") in goodManList:
             pywikibot.output(u"Skip! Good man writes it.")
             continue
@@ -122,25 +109,27 @@ if __name__ == "__main__":
         content = u""
         for i in clist: content += i
         
+        """
         pat_resume = re.compile(u".*เกิด.*วันที่.*(จบ|เรียน|ศึกษา).*")
         
         if pat_resume.match(content) is not None:
             pywikibot.output(u"Resume")
             reqDelete(page, u"ประวัติส่วนตัวไม่โดดเด่น", original_content)
+        """
         
         # {{done}}
         if original_content[0] == u" " and original_content[1] == u" ":
             pywikibot.output(u"Violate copyright policy!")
             reqDelete(page, u"ไม่เป็นสาราฯ/ละเมิดลิขสิทธิ์", original_content)
-    '''
+            
     prefix = u"พูดคุย:"
-    generator = MyNewpagesPageGenerator(number = 5000, namespace = 1)
+    generator = MyNewpagesPageGenerator(number = NUMOFNEWPAGE, namespace = 1)
     for page, username in generator:
         pywikibot.output(u"I am checking " + page.title()[len(prefix):] + u" by user " + username)
         try:
             articlePage = pywikibot.Page(site, page.title()[len(prefix):])
         except:
             pywikibot.output(u"this page does not link with exist page.")
+            reqDelete(page, u"{{ลบ|หน้าที่ขึ้นอยู่กับหน้าว่าง}}", u"")
             
     pywikibot.stopme()
-    '''
