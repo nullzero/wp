@@ -1,6 +1,9 @@
 # -*- coding: utf-8  -*-
 
-import utility, re
+try: import utility
+except: pass
+
+import re
 import wikipedia as pywikibot
 
 EXCLUDEQUOTE = True

@@ -1,6 +1,8 @@
 #-*-coding: utf-8 -*-
 
-import utility
+try: import utility
+except: pass
+
 import pagegenerators, re, datetime, sys, catlib, userlib, category, time, os
 import wikipedia as pywikibot
 

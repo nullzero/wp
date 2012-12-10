@@ -1,6 +1,8 @@
 #-*-coding: utf-8 -*-
 
-import utility
+try: import utility
+except: pass
+
 import sys, re, string, os
 from pagegenerators import NewpagesPageGenerator
 from userlib import User
@@ -9,7 +11,7 @@ from miscellaneous import remove_wikicode, skip_section
 
 env = utility.env
 
-NUMOFNEWPAGE = 2
+NUMOFNEWPAGE = 10
 CHECKEDFILE = os.path.join(env['WORKPATH'], 'av.checked')
 GOODMANFILE = os.path.join(env['WORKPATH'], 'av.goodman')
 
@@ -58,6 +60,7 @@ def reqDelete(page, reason, original_content):
             u"บอตแจ้ง" + reason + u" หากเกิดข้อผิดพลาด โปรดแจ้ง[[คุยกับผู้ใช้:Nullzero|ที่นี่]]")
 
 if __name__ == "__main__":
+    pywikibot.handleArgs(u"-log")
     site = pywikibot.getSite()
     generator = MyNewpagesPageGenerator(number = NUMOFNEWPAGE)
     
@@ -72,11 +75,11 @@ if __name__ == "__main__":
             print page.title().encode("utf8")
             pywikibot.output(u"Skip! I have already checked.")
             break
-        """
         
         # {{done}}
         with open(os.path.join(env['WORKPATH'], CHECKEDFILE), "a") as f:
                 f.write(page.title().encode("utf8") + '\n')
+        """
         
         # {{done}}
         if username.encode("utf8") in goodManList:
@@ -108,15 +111,16 @@ if __name__ == "__main__":
             continue
         
         content = remove_wikicode(skip_section(original_content))
-        clist = content.splitlines()
-        content = u""
-        for i in clist: content += i
         
         # {{done}}
         if abs(len(content) - len(original_content)) < 10:
             pywikibot.output(u"Vandal! too few length of markup")
             reqDelete(page, u"ไม่เป็นสารานุกรม", original_content)
             continue
+        
+        clist = content.splitlines()
+        content = u""
+        for i in clist: content += i
         
         pat_resume = re.compile(u".*เกิด.*วันที่.*(จบ|เรียน|ศึกษา).*")
         
@@ -128,3 +132,15 @@ if __name__ == "__main__":
         if original_content[0] == u" " and original_content[1] == u" ":
             pywikibot.output(u"Violate copyright policy!")
             reqDelete(page, u"ไม่เป็นสาราฯ/ละเมิดลิขสิทธิ์", original_content)
+    '''
+    prefix = u"พูดคุย:"
+    generator = MyNewpagesPageGenerator(number = 5000, namespace = 1)
+    for page, username in generator:
+        pywikibot.output(u"I am checking " + page.title()[len(prefix):] + u" by user " + username)
+        try:
+            articlePage = pywikibot.Page(site, page.title()[len(prefix):])
+        except:
+            pywikibot.output(u"this page does not link with exist page.")
+            
+    pywikibot.stopme()
+    '''

@@ -10,52 +10,35 @@ if console_encoding is None or sys.platform == 'cygwin':
     console_encoding = "iso-8859-1"
 
 def listchoice(clist = [], message = None, default = None):
-
-    if not message:
-        message = "Select"
-
-    if default:
-        message += " (default: %s)" % default
-
+    if not message: message = "Select"
+    if default: message += " (default: %s)" % default
     message += ": "
-
-    for n, i in enumerate(clist):
-        print ("%d: %s" % (n + 1, i))
-
+    for n, i in enumerate(clist): print ("%d: %s" % (n + 1, i))
+    
     while True:
         choice = raw_input(message)
-
-        if choice == '' and default:
-            return default
-
-        try:
-            return clist[int(choice) - 1]
-        except:
-            print("Invalid response")
+        if choice == '' and default: return default
+        try: return clist[int(choice) - 1]
+        except: print("Invalid response")
+        
     return response
 
 def create_user_config(base_dir, username):
     _fnc = os.path.join(base_dir, "user-config.py")
     known_families = re.findall(r'(.+)_family.py\b',
-                               '\n'.join(os.listdir(
-                                   os.path.join(base_dir,
-                                                "families"))))
+        '\n'.join(os.listdir(os.path.join(base_dir,"families"))))
     fam = listchoice(known_families,
                      "Select family of sites we are working on",
-                     default='wikipedia')
+                     default = 'wikipedia')
     mylang = raw_input(
-"The language code of the site we're working on (default: 'en'): ") or 'en'
+        "The language code of the site we're working on (default: 'en'): ") or 'en'
     username = unicode(username, console_encoding)
+    
     while True:
         choice = raw_input(
-"Which variant of user_config.py:\n[S]mall or [E]xtended (with further information)? "
-                           ).upper()
-        if choice in "SE":
-            break
+    "Which variant of user_config.py:\n[S]mall or [E]xtended (with further information)? ").upper()
+        if choice in "SE": break
 
-    #
-    # I don't like this solution. Temporary for me.
-    #
     f = codecs.open(os.path.join(base_dir, "config.py"), "r", "utf-8")
     cpy = f.read()
     f.close()
@@ -129,6 +112,7 @@ def simplifypath(path):
     return os.path.abspath(os.path.expanduser(path))
 
 # ---
+
 try: open(DATACONFIG, 'r').close()
 except IOError:
     # BASEPATH
@@ -164,4 +148,3 @@ if not site.loggedInAs(sysop = env['SYSOP']):
     args = shlex.split('python ' + os.path.join(env['BASEPATH'], 'login.py') + ' -pass:' + env['PASS'])
     process = subprocess.call(args)
     pywikibot.output("Just logged in.")
-    pywikibot.output("Call me again!")
