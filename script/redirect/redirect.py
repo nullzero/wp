@@ -1,3 +1,8 @@
+# -*- coding: utf-8  -*-
+
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
 from pywikipedia.redirect import RedirectGenerator, RedirectRobot
 
 if __name__ == "__main__":

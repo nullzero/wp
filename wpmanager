@@ -1,0 +1,7 @@
+#!/bin/bash
+
+current_dir="$(dirname $0)"
+
+if test -e $current_dir/"script/$1/$1.py"; then
+    python $current_dir/"script/$1/$1.py"
+fi

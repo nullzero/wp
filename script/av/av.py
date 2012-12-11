@@ -1,6 +1,7 @@
 #-*-coding: utf-8 -*-
 
 import sys, re, string, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 try: import preload
 except:
@@ -15,8 +16,7 @@ from miscellaneous import remove_wikicode, skip_section
 env = preload.env
 
 NUMOFNEWPAGE = 20
-CHECKEDFILE = os.path.join(env['WORKPATH'], "av.checked")
-GOODMANFILE = os.path.join(env['WORKPATH'], "av.goodman")
+GOODMANFILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "av.fgoodman"))
 
 # predefine
 def getContent(page, generator):
