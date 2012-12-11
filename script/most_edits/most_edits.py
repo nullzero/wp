@@ -1,4 +1,4 @@
-# -*- coding: utf-8  -*-
+# -*- coding: utf-8 -*-
 
 import sys, datetime, re, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))

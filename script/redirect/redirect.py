@@ -1,8 +1,14 @@
-# -*- coding: utf-8  -*-
+# -*- coding: utf-8 -*-
 
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
+try: import preload
+except:
+    print "Cannot import preload. Exit!"
+    sys.exit()
+
+import wikipedia as pywikibot
 from pywikipedia.redirect import RedirectGenerator, RedirectRobot
 
 if __name__ == "__main__":
