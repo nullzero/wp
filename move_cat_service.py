@@ -3,7 +3,7 @@
 try: import utility
 except: pass
 
-import pagegenerators, re, datetime, sys, catlib, userlib, category, time, os
+import pagegenerators, re, datetime, sys, catlib, userlib, category, time, os, traceback
 import wikipedia as pywikibot
 
 env = utility.env
@@ -12,25 +12,27 @@ env = utility.env
 USER = u"ผู้ใช้:Nullzerobot"
 PAGEMAIN = USER + u"/บริการย้ายหมวดหมู่"
 PAGEPENDING = USER + u"/บริการย้ายหมวดหมู่/หมวดหมู่ที่รอการพิจารณา"
-PAGEREPORT =  USER + u"/รายงาน/บริการย้ายหมวดหมู่"
+PAGEREPORT = USER + u"/บริการย้ายหมวดหมู่/กระบะทราย"
+#PAGEREPORT =  USER + u"/รายงาน/บริการย้ายหมวดหมู่"
 SIMULATE = False
 VERIFYEDITCOUNT = 50
 VERIFYTIME = 300000000
 DONOTMOVE = False
 FLUSHPENDING = u"-pending"
-LOCKFILE = 'movecat.lock'
+LOCKFILE = "movecat.lock"
+SUFFIX = u"\n|}\n\n{{ผู้ใช้:Nullzerobot/บริการย้ายหมวดหมู่/หมวดหมู่ที่รอการพิจารณา}}"
 # end constant
 
 site = pywikibot.getSite()
 
 def domove(source, dest):
-    if DONOTMOVE: return None
+    pywikibot.output(u"move from " + source + " to " + dest)
+    if DONOTMOVE: return
     robot = category.CategoryMoveRobot(source, dest, batchMode=True,
         editSummary=u"", inPlace=False, titleRegex=None, withHistory=False)
     robot.run()
     pageCat = pywikibot.Page(site, u"หมวดหมู่:" + source)
     pageCat.put(u"{{ลบ|บอตย้ายหมวดหมู่ไป[[:หมวดหมู่:" + dest + u"]] แล้ว}}", u"ย้ายหมวดหมู่โดยบอต")
-    return None
 
 def verify(name, flag):
     if(flag): return True
@@ -65,14 +67,24 @@ def main(*args):
         pageprocess = PAGEPENDING
     else:
         pageprocess = PAGEMAIN
-
+    
+    summary = u"ย้ายหมวดหมู่ ณ เวลา "
+    summary += datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
     pageMain = pywikibot.Page(site, pageprocess)
     text = pageMain.get(get_redirect = True)
-    pre, post = text.split(u'-->')
-    pre += u'-->'
+    pre, post = text.split(u"-->")
+    pre += u"-->" + SUFFIX
+    
+    if pre == text:
+        pywikibot.output("Nothing to do here")
+        return
+        
+    pageMain.put(pre, u"เริ่ม" + summary)
+    
     text = post
 
-    pattern = re.compile(u'\|(.*)\|\|.*\[\[:.*:(.*)\]\].*\[\[:.*:(.*)\]\].*\|\|(.*)\n.*\n')
+    pattern = re.compile(u"\|-.*\n\|(.*)\|\|.*\[\[:.*:(.*)\]\].*\[\[:.*:(.*)\]\].*\|\|(.*)\n")
     report = u""
     pending = u""
     isMove = False
@@ -87,8 +99,8 @@ def main(*args):
         vby   = result.group(4).strip()
         text = pattern.sub(u"", text, 1)
         if(not vby): vby = u"N/A"
-        line = u""
-        line += u"| "
+        
+        line = u"|-\n| "
         line += vdate
         line += u" || [[:หมวดหมู่:" 
         line += vfrom 
@@ -102,26 +114,30 @@ def main(*args):
             domove(vfrom, vto)
             line += u" || "
             line += datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            line += u"\n|-\n"
+            line += u"\n"
             report += line
         else:
             isPend = True
-            line += u"\n|-\n"
+            line += u"\n"
             pending += line
 
-    if (not isMove) and (not isPend): sys.exit()
+    text = text.strip()[:-len(SUFFIX)]
+    
+    if text != u"":
+        pywikibot.output("Error!")
+        pywikibot.output(text)
+    
+    if (not isMove) and (not isPend):
+        pywikibot.output("Nothing to do here")
+        return
 
     report += u"|}"
     pending += u"|}"
 
-    summary = u"ดำเนินการย้ายหมวดหมู่ ณ เวลา "
-    summary += datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    pageMain.put(pre + text, u"ดำเนินการย้ายหมวดหมู่ ณ เวลา " + summary)
-
     if isMove:
         pageReport = pywikibot.Page(site, PAGEREPORT)
         text = pageReport.get(get_redirect = True)
-        pattern = re.compile(u'\|\}')
+        pattern = re.compile(u"\|\}")
         text = pattern.sub(u"", text, 1)
         text += report
         pageReport.put(text, summary)
@@ -129,7 +145,7 @@ def main(*args):
     if isPend:
         pagePending = pywikibot.Page(site, PAGEPENDING)
         text = pagePending.get(get_redirect = True)
-        pattern = re.compile(u'\|\}')
+        pattern = re.compile(u"\|\}")
         text = pattern.sub(u"", text, 1)
         text += pending
         pagePending.put(text, summary)
@@ -143,16 +159,21 @@ if __name__ == "__main__":
     pywikibot.handleArgs(argument)
     lockfile = os.path.join(env['TMP'], LOCKFILE)
     
-    try:
-        if os.path.exists(lockfile):
-            pywikibot.output(u"This script is locked.")
-            pywikibot.stopme()
-            sys.exit()
-        
-        open(lockfile, 'w').close() 
-        main()
-    finally:
-        try: os.remove(lockfile)
-        except: pywikibot.output("Can't remove lockfile.")
-        pywikibot.output("Bye")
+    if os.path.exists(lockfile):
+        pywikibot.output(u"This script is locked.")
         pywikibot.stopme()
+        sys.exit()
+    
+    open(lockfile, 'w').close() 
+    
+    try:
+        main()
+    except:
+        var = traceback.format_exc()
+        pywikibot.output(u"Unexpected error!")
+        pywikibot.output(var.encode("utf-8"))
+        
+    try: os.remove(lockfile)
+    except: pywikibot.output(u"Can't remove lockfile.")
+    pywikibot.output(u"Bye")
+    pywikibot.stopme()
