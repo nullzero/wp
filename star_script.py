@@ -1,9 +1,12 @@
 # -*- coding: utf-8  -*-
 
-try: import utility
-except: pass
+import re, sys
 
-import re
+try: import preload
+except:
+    print "Cannot import preload. Exit!"
+    sys.exit()
+    
 import wikipedia as pywikibot
 
 MAXN = 500
@@ -116,6 +119,7 @@ def dochange(pagename):
 
 if __name__ == "__main__":
     pywikibot.handleArgs(u"-log")
+    pywikibot.output(u"'star-script' is invoked. (%s)" % preload.getTime())
     with open(QUEUE, "r") as f: content = f.read()
     with open(QUEUE, "w") as f: pass
     lines = content.splitlines()
@@ -124,6 +128,7 @@ if __name__ == "__main__":
         pywikibot.output(i)
         succ = dochange(i.decode("utf-8"))
         if not succ: 
-            with open(NOTHING, "a") as f: f.write(i + '\n')
-        
+            with open(NOTHING, "a") as f: f.write(i + "\n")
+    
+    pywikibot.output(u"'star-script' terminated. (%s)" % preload.getTime())    
     pywikibot.stopme()

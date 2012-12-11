@@ -1,26 +1,29 @@
 #-*-coding: utf-8 -*-
 
-try: import utility
-except: pass
+import re, datetime, sys, time, os, traceback
 
-import pagegenerators, re, datetime, sys, catlib, userlib, category, time, os, traceback
+try: import preload
+except:
+    print "Cannot import preload. Exit!"
+    sys.exit()
+
 import wikipedia as pywikibot
+import pagegenerators, catlib, userlib, category
 
-env = utility.env
+env = preload.env
 
 # constant
 USER = u"ผู้ใช้:Nullzerobot"
 PAGEMAIN = USER + u"/บริการย้ายหมวดหมู่"
 PAGEPENDING = USER + u"/บริการย้ายหมวดหมู่/หมวดหมู่ที่รอการพิจารณา"
-PAGEREPORT = USER + u"/บริการย้ายหมวดหมู่/กระบะทราย"
-#PAGEREPORT =  USER + u"/รายงาน/บริการย้ายหมวดหมู่"
+PAGEREPORT =  USER + u"/รายงาน/บริการย้ายหมวดหมู่"
 SIMULATE = False
 VERIFYEDITCOUNT = 50
 VERIFYTIME = 300000000
 DONOTMOVE = False
 FLUSHPENDING = u"-pending"
 LOCKFILE = "movecat.lock"
-SUFFIX = u"\n|}\n\n{{ผู้ใช้:Nullzerobot/บริการย้ายหมวดหมู่/หมวดหมู่ที่รอการพิจารณา}}"
+SUFFIX = u"\n|}\n\n{{/หมวดหมู่ที่รอการพิจารณา}}"
 # end constant
 
 site = pywikibot.getSite()
@@ -28,8 +31,8 @@ site = pywikibot.getSite()
 def domove(source, dest):
     pywikibot.output(u"move from " + source + " to " + dest)
     if DONOTMOVE: return
-    robot = category.CategoryMoveRobot(source, dest, batchMode=True,
-        editSummary=u"", inPlace=False, titleRegex=None, withHistory=False)
+    robot = category.CategoryMoveRobot(source, dest, batchMode = True,
+        editSummary = u"", inPlace = False, titleRegex = None, withHistory = False)
     robot.run()
     pageCat = pywikibot.Page(site, u"หมวดหมู่:" + source)
     pageCat.put(u"{{ลบ|บอตย้ายหมวดหมู่ไป[[:หมวดหมู่:" + dest + u"]] แล้ว}}", u"ย้ายหมวดหมู่โดยบอต")
@@ -37,7 +40,7 @@ def domove(source, dest):
 def verify(name, flag):
     if(flag): return True
     if name == u"N/A": return False
-    pattern = re.compile(u'\{\{.*\|(.*)\}\}')
+    pattern = re.compile(u"\{\{.*\|(.*)\}\}")
     result = pattern.match(name)
     if not result: return False
     name = result.group(1)
@@ -45,7 +48,7 @@ def verify(name, flag):
     if not user.isRegistered(): return False
     if user.editCount() < VERIFYEDITCOUNT: return False
     if user.isBlocked(): return False
-    difftime = int(time.strftime('%Y%m%d%H%M%S', time.gmtime()))
+    difftime = int(time.strftime("%Y%m%d%H%M%S", time.gmtime()))
     difftime -=  int(user.registrationTime())
     if(difftime < VERIFYTIME): return False
     return True
@@ -57,30 +60,27 @@ def catempty(title, flag):
     return len(listOfArticles) == 0
 
 def main(*args):
-    pywikibot.output(u"Move-category service is invoked. (%s)" % 
-        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    pywikibot.output(u"'move-category service' is invoked. (%s)" % preload.getTime())
         
     flag = False
-    pageprocess = None
+    
     if (len(pywikibot.handleArgs(*args)) > 0) and (pywikibot.handleArgs(*args)[0] == FLUSHPENDING):
         flag = True
         pageprocess = PAGEPENDING
     else:
         pageprocess = PAGEMAIN
     
-    summary = u"ย้ายหมวดหมู่ ณ เวลา "
-    summary += datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     pageMain = pywikibot.Page(site, pageprocess)
     text = pageMain.get(get_redirect = True)
     pre, post = text.split(u"-->")
-    pre += u"-->" + SUFFIX
     
-    if pre == text:
+    if SUFFIX.strip() == post.strip():
         pywikibot.output("Nothing to do here")
         return
-        
-    pageMain.put(pre, u"เริ่ม" + summary)
+    
+    summary = u"ย้ายหมวดหมู่ ณ เวลา "    
+    pageMain.put(pre + u"-->" + SUFFIX, u"เริ่ม" + summary + preload.getTime())
     
     text = post
 
@@ -113,7 +113,7 @@ def main(*args):
             isMove = True
             domove(vfrom, vto)
             line += u" || "
-            line += datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            line += preload.getTime()
             line += u"\n"
             report += line
         else:
@@ -128,30 +128,28 @@ def main(*args):
         pywikibot.output(text)
     
     if (not isMove) and (not isPend):
-        pywikibot.output("Nothing to do here")
+        pywikibot.output("Nothing to do here (WTF)")
         return
 
     report += u"|}"
     pending += u"|}"
-
+    p_end = re.compile(u"\|\}")
+    
     if isMove:
         pageReport = pywikibot.Page(site, PAGEREPORT)
         text = pageReport.get(get_redirect = True)
-        pattern = re.compile(u"\|\}")
-        text = pattern.sub(u"", text, 1)
+        text = p_end.sub(u"", text, 1)
         text += report
-        pageReport.put(text, summary)
+        pageReport.put(text, summary + preload.getTime())
 
     if isPend:
         pagePending = pywikibot.Page(site, PAGEPENDING)
         text = pagePending.get(get_redirect = True)
-        pattern = re.compile(u"\|\}")
-        text = pattern.sub(u"", text, 1)
+        text = p_end.sub(u"", text, 1)
         text += pending
-        pagePending.put(text, summary)
+        pagePending.put(text, summary + preload.getTime())
         
-    pywikibot.output(u"Moved categories. (%s)" % 
-        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    pywikibot.output(u"'move-category service' terminated. (%s)" % preload.getTime())
 
 if __name__ == "__main__":
     argument = u"-log"

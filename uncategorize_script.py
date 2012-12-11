@@ -1,20 +1,21 @@
 # -*- coding: utf-8  -*-
 
-try: import utility
-except: pass
+import datetime, subprocess, shlex, os, sys
 
-import datetime, subprocess, shlex, os
+try: import preload
+except:
+    print "Cannot import preload. Exit!"
+    sys.exit()
+
 import wikipedia as pywikibot
+
+env = preload.env
 
 if __name__ == "__main__":
     pywikibot.handleArgs(u"-log")
+    pywikibot.output(u"'uncategorize-script' is invoked. (%s)" % preload.getTime())
 
-    pywikibot.output(u"'Uncategorize' is invoked. (%s)" % 
-        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-
-    env = utility.env
-
-    prefix = shlex.split('python ' + os.path.join(env['WORKPATH'], 'pywikipedia/replace.py -always -regex'))
+    prefix = shlex.split("python " + os.path.join(env['WORKPATH'], "pywikipedia/replace.py -always -regex"))
     suffix = shlex.split(' -subcats:หน้าที่ยังไม่ได้จัดหมวดหมู่ "\[\[(Category|category):" "[[หมวดหมู่:"')
     process = subprocess.call(prefix + suffix)
     suffix = shlex.split(' -cat:หน้าที่ยังไม่ได้จัดหมวดหมู่ "\[\[(Category|category):" "[[หมวดหมู่:"')
@@ -24,7 +25,5 @@ if __name__ == "__main__":
     suffix = shlex.split('-cat:หน้าที่ยังไม่ได้จัดหมวดหมู่ -requiretext:"\[\[หมวดหมู่:" "\{\{ต้องการหมวดหมู่\}\}" ""')
     process = subprocess.call(prefix + suffix)
 
-    pywikibot.output(u"'Uncategorize' terminated. (%s)" % 
-        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    
+    pywikibot.output(u"'uncategorize-script' terminated. (%s)" % preload.getTime())
     pywikibot.stopme()

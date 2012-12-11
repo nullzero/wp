@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 
-try: import utility
-except: pass
+import sys
 
-import datetime
+try: import preload
+except:
+    print "Cannot import preload. Exit!"
+    sys.exit()
+
 import wikipedia as pywikibot
 
 if __name__ == "__main__":
     pywikibot.handleArgs(u"-log")
-
-    pywikibot.output(u"'Clear-sandbox' is invoked. (%s)" % 
-            datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    pywikibot.output(u"'clear-sandbox' is invoked. (%s)" % preload.getTime())
             
     vlist = []
     vlist.append(u"วิกิพีเดีย:สอนการใช้งาน_(จัดรูปแบบ)/กระดาษทด")
@@ -26,7 +27,5 @@ if __name__ == "__main__":
         page = pywikibot.Page(site, i)
         page.put(text, u"ล้างหน้าอัตโนมัติด้วยบอต")
 
-    pywikibot.output(u"'Clear-sandbox' terminated. (%s)" % 
-            datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-
+    pywikibot.output(u"'clear-sandbox' terminated. (%s)" % preload.getTime())
     pywikibot.stopme()

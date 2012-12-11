@@ -172,10 +172,13 @@ __version__='$Id: replace.py 10576 2012-10-14 17:16:30Z xqt $'
 #
 
 import sys, os
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import utility 
+try: import preload
+except:
+    print "Cannot import preload. Exit!"
+    sys.exit()
+    
 import re, time, codecs
 import wikipedia as pywikibot
 import pagegenerators

@@ -1,9 +1,12 @@
 # -*- coding: utf-8  -*-
 
-try: import utility
-except: pass
+import sys, re
 
-import re
+try: import preload
+except:
+    print "Cannot import preload. Exit!"
+    sys.exit()
+
 import wikipedia as pywikibot
 
 EXCLUDEQUOTE = True

@@ -1,10 +1,14 @@
 # -*- coding: utf-8  -*-
 
-try: import utility
-except: pass
+import sys, datetime, re
+
+try: import preload
+except:
+    print "Cannot import preload. Exit!"
+    sys.exit()
 
 import wikipedia as pywikibot
-import pagegenerators, query, sys, datetime, re
+import pagegenerators, query
 
 # constant
 LIMIT = 500
@@ -15,7 +19,7 @@ BOTSUFFIX = u"_(รวมบอต)"
 # end constant
 
 site = pywikibot.getSite()
-pbot = re.compile('^(.*(บอต|bot)|(บอต|bot).*)$', re.IGNORECASE)
+pbot = re.compile(u"^(.*(บอต|bot)|(บอต|bot).*)$", re.IGNORECASE)
 
 def isbot(data):
     if 'bot' in data['groups']: return True
@@ -51,14 +55,13 @@ def dowrite(path, data):
     page = pywikibot.Page(site, path)
     gettext = page.get(get_redirect = True)
     
-    pre, post = gettext.split(u'{{/end}}')
+    pre, post = gettext.split(u"{{/end}}")
     
-    page.put(puttext + u"{{/end}}\n" + post, u'ปรับปรุงรายการ')
+    page.put(puttext + u"{{/end}}\n" + post, u"ปรับปรุงรายการ")
     pywikibot.output(u"done!")
     
 def main():
-    pywikibot.output(u"'Most-edits' is invoked. (%s)" % 
-        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    pywikibot.output(u"'most-edits' is invoked. (%s)" % preload.getTime())
     includebot = []
     excludebot = []
 
@@ -78,8 +81,7 @@ def main():
         includebot += getdata['query']['allusers']
         excludebot += trimbot(getdata['query']['allusers'])
         
-        pywikibot.output("%d" % loop)
-        pywikibot.output(getdata['query']['allusers'][0]['name'])
+        pywikibot.output("%d | %s" % (loop, getdata['query']['allusers'][0]['name']))
         
         loop += 1
         
@@ -101,9 +103,7 @@ def main():
     
     dowrite(PATH + BOTSUFFIX, includebot)
     dowrite(PATH, excludebot)
-    
-    pywikibot.output(u"'Most-edits' terminated. (%s)" % 
-        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    pywikibot.output(u"'most-edits' terminated. (%s)" % preload.getTime())
 
 if __name__ == "__main__":
     try:

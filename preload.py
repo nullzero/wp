@@ -1,13 +1,15 @@
 # -*- coding: utf-8  -*-
 
-import codecs, os, re, sys
+import codecs, os, re, sys, datetime
 
-DATACONFIG = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'config/data.cfg')
+DATACONFIG = os.path.join(os.path.abspath(os.path.dirname(__file__)), "config/data.cfg")
 
 console_encoding = sys.stdout.encoding
 
 if console_encoding is None or sys.platform == 'cygwin':
     console_encoding = "iso-8859-1"
+
+def getTime(): return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 def listchoice(clist = [], message = None, default = None):
     if not message: message = "Select"
@@ -118,7 +120,7 @@ except IOError:
     # BASEPATH
     putdata("BASEPATH",
         "Enter Pywikibot path: ", 
-        lambda path: os.path.exists(simplifypath(os.path.join(path, 'login.py'))),
+        lambda path: os.path.exists(simplifypath(os.path.join(path, "login.py"))),
         parser = lambda path: simplifypath(path))
     # USERNAME
     putdata("USER", "Enter username: ")
@@ -135,7 +137,7 @@ except IOError:
 env = loadConfig()
 sys.path.append(env['BASEPATH'])
 
-if not os.path.exists(os.path.join(env['BASEPATH'], 'user-config.py')):
+if not os.path.exists(os.path.join(env['BASEPATH'], "user-config.py")):
     create_user_config(env['BASEPATH'], env['USER'])
     env = loadConfig()
 
@@ -145,6 +147,6 @@ site = pywikibot.getSite()
 if not site.loggedInAs(sysop = env['SYSOP']):
     pywikibot.output("I have not logged in yet!")
     import shlex, subprocess
-    args = shlex.split('python ' + os.path.join(env['BASEPATH'], 'login.py') + ' -pass:' + env['PASS'])
+    args = shlex.split("python " + os.path.join(env['BASEPATH'], "login.py") + " -pass:" + env['PASS'])
     process = subprocess.call(args)
     pywikibot.output("Just logged in.")

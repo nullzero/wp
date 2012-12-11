@@ -1,30 +1,33 @@
 #-*-coding: utf-8 -*-
 
-try: import utility
-except: pass
-
 import sys, re, string, os
+
+try: import preload
+except:
+    print "Cannot import preload. Exit!"
+    sys.exit()
+    
 from pagegenerators import NewpagesPageGenerator
 from userlib import User
 import wikipedia as pywikibot
 from miscellaneous import remove_wikicode, skip_section
 
-env = utility.env
+env = preload.env
 
 NUMOFNEWPAGE = 20
-CHECKEDFILE = os.path.join(env['WORKPATH'], 'av.checked')
-GOODMANFILE = os.path.join(env['WORKPATH'], 'av.goodman')
+CHECKEDFILE = os.path.join(env['WORKPATH'], "av.checked")
+GOODMANFILE = os.path.join(env['WORKPATH'], "av.goodman")
 
 # predefine
 def getContent(page, generator):
     try:
         content = page.get()
     except pywikibot.NoPage:
-        pywikibot.output(u'Page %s not found' % page.title())
+        pywikibot.output(u"Page %s not found" % page.title())
         return None
     except pywikibot.IsRedirectPage:
         newpage = page.getRedirectTarget()
-        pywikibot.output(u'Page %s redirects to \'%s\''
+        pywikibot.output(u"Page %s redirects to '%s'"
                          % (page.title(asLink=True), newpage.title()))
         generator.append(newpage)
         return None
@@ -36,12 +39,12 @@ def getContent(page, generator):
     return content
 
 def readfile(filename):
-    with open(filename, "r") as f:
+    with open(filename, 'r') as f:
         content = f.read()
     
     return content.splitlines()
 
-def MyNewpagesPageGenerator(number=100, repeat=False, site=None, namespace=0, user=None):
+def MyNewpagesPageGenerator(number = 100, repeat = False, site = None, namespace = 0, user = None):
     """
     Iterate Page objects for all new titles in a single namespace.
     """
@@ -61,6 +64,7 @@ def reqDelete(page, reason, original_content):
 
 if __name__ == "__main__":
     pywikibot.handleArgs(u"-log")
+    pywikibot.output(u"'av-script' is invoked. (%s)" % preload.getTime())
     site = pywikibot.getSite()
     generator = MyNewpagesPageGenerator(number = NUMOFNEWPAGE)
     
@@ -131,5 +135,6 @@ if __name__ == "__main__":
         except:
             pywikibot.output(u"this page does not link with exist page.")
             reqDelete(page, u"{{ลบ|หน้าที่ขึ้นอยู่กับหน้าว่าง}}", u"")
-            
+    
+    pywikibot.output(u"'av-script' terminated. (%s)" % preload.getTime())
     pywikibot.stopme()
