@@ -1,6 +1,6 @@
 #-*-coding: utf-8 -*-
 
-import re, datetime, sys, time, os, traceback
+import re, sys, time, os, traceback
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 try: import preload
@@ -153,9 +153,8 @@ def main(*args):
     pywikibot.output(u"'move-category service' terminated. (%s)" % preload.getTime())
 
 if __name__ == "__main__":
-    argument = u"-log"
-    if(SIMULATE): argument += u" -simulate"
-    pywikibot.handleArgs(argument)
+    pywikibot.handleArgs("-log")
+    if(SIMULATE): pywikibot.handleArgs("-simulate")
     lockfile = os.path.join(env['TMP'], LOCKFILE)
     
     if os.path.exists(lockfile):
@@ -171,6 +170,7 @@ if __name__ == "__main__":
         var = traceback.format_exc()
         pywikibot.output(u"Unexpected error!")
         pywikibot.output(var.encode("utf-8"))
+        sys.exit()
         
     try: os.remove(lockfile)
     except: pywikibot.output(u"Can't remove lockfile.")

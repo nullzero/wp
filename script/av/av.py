@@ -104,7 +104,7 @@ if __name__ == "__main__":
         content = remove_wikicode(skip_section(original_content))
         
         # {{done}}
-        if abs(len(content) - len(original_content)) < 10:
+        if abs(len(content) - len(original_content)) < 32:
             pywikibot.output(u"Vandal! too few length of markup")
             reqDelete(page, u"ไม่เป็นสารานุกรม", original_content)
             continue

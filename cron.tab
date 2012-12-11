@@ -1,5 +1,6 @@
-0 * * * * move_cat_service.py
-0 */6 * * * clear_sandbox_script.py
-0 0 * * * uncategorize_script.py
-0 0 15 * * most_edits_script.py 
-0 0 * * * redirect_script.py 
+0 * * * * auto_move_cat
+0 */6 * * * clear_sandbox
+0 0 * * * uncategorize
+0 0 15 * * most_edits
+0 0 * * * redirect 
+0 0 * * * update

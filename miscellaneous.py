@@ -145,7 +145,7 @@ def join_family_data(reString, namespace):
     
 reImageC = re.compile('\[\[' + join_family_data('Image', 6) + ':.*?\]\]', re.I)
 
-def remove_wikicode(text, re_dotall = True, remove_quote = EXCLUDEQUOTE, debug = False):
+def remove_wikicode(text, re_dotall = True, remove_quote = EXCLUDEQUOTE, debug = False, space = True):
     if not text:
         return ""
 
@@ -231,7 +231,7 @@ def remove_wikicode(text, re_dotall = True, remove_quote = EXCLUDEQUOTE, debug =
         text = re.sub('(?m)^[:*]*\s*[“][^”]+[”]\.?\s*(\(.*?\))?\r?$', "", text)
 
     # remove useless spaces
-    text = re.sub("(?m)(^[ \t]+|[ \t]+\r?$)", "", text)
+    if not space: text = re.sub("(?m)(^[ \t]+|[ \t]+\r?$)", "", text)
 
     if debug: write_log(text+'\n', "wikicode_removed.txt")
 
