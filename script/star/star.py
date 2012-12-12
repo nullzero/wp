@@ -28,7 +28,7 @@ def dochange(pagename):
     tablelist = p_wikitable.findall(content)
     
     keepcolumn = [([u"พ.ศ.", u"ปี"], u"ปี พ.ศ."), 
-        ([u"ละคร", u"ภาพยนตร์", u"ชื่อเรื่อง"], u"เรื่อง"),
+        ([u"ละคร", u"ภาพยนตร์", u"ชื่อเรื่อง", u"ละครเวที"], u"เรื่อง"),
         ([u"รับบท", u"บทบาท"], u"รับบทเป็น")]
 
     for table in tablelist:

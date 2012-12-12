@@ -8,6 +8,7 @@ except:
     print "Cannot import preload. Exit!"
     sys.exit()
 
+from lib import miscellaneous
 from lib import libdate
 import wikipedia as pywikibot
 
@@ -21,13 +22,6 @@ if __name__ == "__main__":
     year = today.year + 543    
     month = libdate.monthThai(today.month)
     day = today.day
-    
-    if today.year % 400 == 0: what = 29
-    elif today.year % 100 == 0: what = 28
-    elif today.year % 4 == 0: what = 29
-    else: what = 28
-        
-    numdays = [31, what, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
     
     content = u"""<!--แม่แบบนี้ถูกสร้างขึ้นโดยอัตโนมัติด้วยบอต การเปลี่ยนแปลงในหน้านี้จะถูกเขียนทับในวันต่อไป หากต้องการแก้ไข กรุณาแจ้ง ผู้ใช้:Jutiphan และต้นแบบได้ที่ แม่แบบ:กล่องเหตุการณ์ปัจจุบัน/ต้นแบบ -->
 {| class="infobox" width="250" style="text-align: center; margin-top:7px; border:2px solid #cedff2;"
@@ -61,7 +55,7 @@ if __name__ == "__main__":
     numblank = libdate.date(today.year, today.month, 1).weekday()
     for i in range(numblank): content += u"|\n"
     now = numblank
-    for i in range(1, numdays[today.month - 1] + 1):
+    for i in range(1, libdate.getNumDay(today.year, today.month) + 1):
         if now % 7 == 0: content += u"|-\n"
         content += u"|'''[[%s|%d]]'''\n" % (u"แม่แบบ:เหตุการณ์ปัจจุบัน/%d_%s_%d" % (
             year, libdate.monthThai(today.month), i), i)
@@ -80,6 +74,31 @@ if __name__ == "__main__":
     else:
         pywikibot.output(u"Write new calendar")
         page.put(content, u"อัปเดตปฏิทินโดยบอต")
-        
+    
+    pageName = u"%s_พ.ศ._%d" % (month, year)
+    if not miscellaneous.existPage(pageName):
+        page = pywikibot.Page(site, pageName)
+        content = u"""'''%s พ.ศ. %d''' เป็นเดือนที่ %d ของปี [[พ.ศ. %d]] \
+วันแรกของเดือนเป็น[[%s]] วันสุดท้ายของเดือนเป็น[[%s]]
+
+== [[สถานีย่อย:เหตุการณ์ปัจจุบัน]] ==
+{{เหตุการณ์ปัจจุบัน/เดือน|%d %s}}
+
+{{เหตุการณ์เดือนอื่น}}
+
+[[หมวดหมู่:พ.ศ. %d แบ่งตามเดือน|*%d-%d]]
+
+[[en:%s %d]]""" % (month, year, today.month, year, 
+    libdate.weekdayThai(libdate.date(today.year, today.month, 1).weekday()),
+    libdate.weekdayThai(libdate.date(today.year, today.month, 
+        libdate.getNumDay(today.year, today.month)).weekday()),
+    year, month,
+    year, year, today.month,
+    libdate.monthEng(today.month), today.year)
+        page.put(content, u"เพิ่มเดือนโดยบอต")
+        pywikibot.output(u"Write new month")
+    else:
+        pywikibot.output(u"Nothing to do!")
+    
     pywikibot.output(u"'calendar script' terminated. (%s)" % libdate.getTime())
     pywikibot.stopme()
