@@ -257,3 +257,9 @@ def cut_section(text, sectC):
         else:
             return text[:start.start()]
     return text
+
+def existPage(pageName):
+    site = pywikibot.getSite()
+    try: pywikibot.Page(site, pageName).get()
+    except pywikibot.NoPage: return False
+    return True
