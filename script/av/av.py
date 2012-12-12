@@ -7,7 +7,8 @@ try: from lib import preload
 except:
     print "Cannot import preload. Exit!"
     sys.exit()
-    
+
+from lib import libdate    
 from lib.miscellaneous import remove_wikicode, skip_section
 from pagegenerators import NewpagesPageGenerator
 from userlib import User

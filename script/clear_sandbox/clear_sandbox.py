@@ -8,6 +8,7 @@ except:
     print "Cannot import preload. Exit!"
     sys.exit()
 
+from lib import libdate
 import wikipedia as pywikibot
 
 if __name__ == "__main__":

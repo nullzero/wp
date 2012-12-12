@@ -8,6 +8,7 @@ except:
     print "Cannot import preload. Exit!"
     sys.exit()
 
+from lib import libdate
 import wikipedia as pywikibot
 import pagegenerators, catlib, userlib, category
 
@@ -22,7 +23,7 @@ SIMULATE = False
 VERIFYEDITCOUNT = 50
 VERIFYTIME = 300000000
 DONOTMOVE = False
-FLUSHPENDING = u"-pending"
+FLUSHPENDING = "-pending"
 LOCKFILE = "movecat.lock"
 SUFFIX = u"\n|}\n\n{{/หมวดหมู่ที่รอการพิจารณา}}"
 # end constant
@@ -66,11 +67,11 @@ def main(*args):
     flag = False
     
     if (len(pywikibot.handleArgs(*args)) > 0) and (pywikibot.handleArgs(*args)[0] == FLUSHPENDING):
+        pywikibot.output(u"Pending mode")
         flag = True
         pageprocess = PAGEPENDING
     else:
         pageprocess = PAGEMAIN
-    
     
     pageMain = pywikibot.Page(site, pageprocess)
     text = pageMain.get(get_redirect = True)

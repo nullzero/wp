@@ -7,7 +7,8 @@ try: from lib import preload
 except:
     print "Cannot import preload. Exit!"
     sys.exit()
-    
+
+from lib import libdate    
 import wikipedia as pywikibot
 
 MAXN = 500

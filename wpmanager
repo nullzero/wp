@@ -3,5 +3,12 @@
 current_dir="$(dirname $0)"
 
 if test -e "${current_dir}/script/$1/$1.py"; then
-    python "${current_dir}/script/$1/$1.py"
+    path="${current_dir}/script/$1/$1.py"
+    if test -z "$2"; then
+        python "$path"
+    else
+        python "$path" "$2"
+    fi
+else
+    echo "The script does not found!"
 fi
