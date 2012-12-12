@@ -25,7 +25,6 @@ VERIFYTIME = 300000000
 DONOTMOVE = False
 FLUSHPENDING = "-pending"
 LOCKFILE = "movecat.lock"
-SUFFIX = u"\n|}\n\n{{/หมวดหมู่ที่รอการพิจารณา}}"
 # end constant
 
 site = pywikibot.getSite()
@@ -62,16 +61,17 @@ def catempty(title, flag):
     return len(listOfArticles) == 0
 
 def main(*args):
-    pywikibot.output(u"'move-category service' is invoked. (%s)" % libdate.getTime())
-        
     flag = False
+    pywikibot.output(u"'move-category service' is invoked. (%s)" % libdate.getTime())
     
     if (len(pywikibot.handleArgs(*args)) > 0) and (pywikibot.handleArgs(*args)[0] == FLUSHPENDING):
         pywikibot.output(u"Pending mode")
         flag = True
         pageprocess = PAGEPENDING
+        SUFFIX = u"\n|}"
     else:
         pageprocess = PAGEMAIN
+        SUFFIX = u"\n|}\n\n{{/หมวดหมู่ที่รอการพิจารณา}}"
     
     pageMain = pywikibot.Page(site, pageprocess)
     text = pageMain.get(get_redirect = True)
@@ -81,7 +81,7 @@ def main(*args):
         pywikibot.output("Nothing to do here")
         return
     
-    summary = u"ย้ายหมวดหมู่ ณ เวลา "    
+    summary = u"ย้ายหมวดหมู่ ณ เวลา "
     pageMain.put(pre + u"-->" + SUFFIX, u"เริ่ม" + summary + libdate.getTime())
     
     text = post
