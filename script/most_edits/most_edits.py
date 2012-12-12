@@ -3,7 +3,7 @@
 import sys, datetime, re, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-try: import preload
+try: from lib import preload
 except:
     print "Cannot import preload. Exit!"
     sys.exit()
@@ -62,7 +62,7 @@ def dowrite(path, data):
     pywikibot.output(u"done!")
     
 def main():
-    pywikibot.output(u"'most-edits' is invoked. (%s)" % preload.getTime())
+    pywikibot.output(u"'most-edits' is invoked. (%s)" % libdate.getTime())
     includebot = []
     excludebot = []
 
@@ -104,7 +104,7 @@ def main():
     
     dowrite(PATH + BOTSUFFIX, includebot)
     dowrite(PATH, excludebot)
-    pywikibot.output(u"'most-edits' terminated. (%s)" % preload.getTime())
+    pywikibot.output(u"'most-edits' terminated. (%s)" % libdate.getTime())
 
 if __name__ == "__main__":
     try:

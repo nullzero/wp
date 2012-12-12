@@ -3,7 +3,7 @@
 import re, sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-try: import preload
+try: from lib import preload
 except:
     print "Cannot import preload. Exit!"
     sys.exit()
@@ -119,7 +119,7 @@ def dochange(pagename):
 
 if __name__ == "__main__":
     pywikibot.handleArgs(u"-log")
-    pywikibot.output(u"'star-script' is invoked. (%s)" % preload.getTime())
+    pywikibot.output(u"'star-script' is invoked. (%s)" % libdate.getTime())
     with open(QUEUE, "r") as f: content = f.read()
     with open(QUEUE, "w") as f: pass
     lines = content.splitlines()
@@ -130,5 +130,5 @@ if __name__ == "__main__":
         if not succ: 
             with open(NOTHING, "a") as f: f.write(i + "\n")
     
-    pywikibot.output(u"'star-script' terminated. (%s)" % preload.getTime())    
+    pywikibot.output(u"'star-script' terminated. (%s)" % libdate.getTime())    
     pywikibot.stopme()

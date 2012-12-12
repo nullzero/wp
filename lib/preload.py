@@ -2,14 +2,12 @@
 
 import codecs, os, re, sys, datetime
 
-DATACONFIG = os.path.join(os.path.abspath(os.path.dirname(__file__)), "config/data.cfg")
+DATACONFIG = os.path.join(os.path.abspath(os.path.dirname(__file__)), "../config/data.cfg")
 
 console_encoding = sys.stdout.encoding
 
 if console_encoding is None or sys.platform == 'cygwin':
     console_encoding = "iso-8859-1"
-
-def getTime(): return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 def listchoice(clist = [], message = None, default = None):
     if not message: message = "Select"
@@ -131,7 +129,7 @@ except IOError:
     # TMP
     putdata("TMP", data = "/tmp")
     # WORKPATH
-    putdata("WORKPATH", data = simplifypath(os.path.dirname(__file__)))
+    putdata("WORKPATH", data = simplifypath(os.path.join(os.path.dirname(__file__), "..")))
     # ...
 
 env = loadConfig()

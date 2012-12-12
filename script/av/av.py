@@ -3,15 +3,15 @@
 import sys, re, string, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-try: import preload
+try: from lib import preload
 except:
     print "Cannot import preload. Exit!"
     sys.exit()
     
+from lib.miscellaneous import remove_wikicode, skip_section
 from pagegenerators import NewpagesPageGenerator
 from userlib import User
 import wikipedia as pywikibot
-from miscellaneous import remove_wikicode, skip_section
 
 env = preload.env
 
@@ -64,7 +64,7 @@ def reqDelete(page, reason, original_content):
 
 if __name__ == "__main__":
     pywikibot.handleArgs(u"-log")
-    pywikibot.output(u"'av-script' is invoked. (%s)" % preload.getTime())
+    pywikibot.output(u"'av-script' is invoked. (%s)" % libdate.getTime())
     site = pywikibot.getSite()
     generator = MyNewpagesPageGenerator(number = NUMOFNEWPAGE)
     
@@ -136,5 +136,5 @@ if __name__ == "__main__":
             pywikibot.output(u"this page does not link with exist page.")
             reqDelete(page, u"{{ลบ|หน้าที่ขึ้นอยู่กับหน้าว่าง}}", u"")
     
-    pywikibot.output(u"'av-script' terminated. (%s)" % preload.getTime())
+    pywikibot.output(u"'av-script' terminated. (%s)" % libdate.getTime())
     pywikibot.stopme()

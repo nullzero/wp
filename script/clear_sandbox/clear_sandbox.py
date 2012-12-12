@@ -3,7 +3,7 @@
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-try: import preload
+try: from lib import preload
 except:
     print "Cannot import preload. Exit!"
     sys.exit()
@@ -12,7 +12,7 @@ import wikipedia as pywikibot
 
 if __name__ == "__main__":
     pywikibot.handleArgs(u"-log")
-    pywikibot.output(u"'clear-sandbox' is invoked. (%s)" % preload.getTime())
+    pywikibot.output(u"'clear-sandbox' is invoked. (%s)" % libdate.getTime())
             
     vlist = []
     vlist.append(u"วิกิพีเดีย:สอนการใช้งาน_(จัดรูปแบบ)/กระดาษทด")
@@ -28,5 +28,5 @@ if __name__ == "__main__":
         page = pywikibot.Page(site, i)
         page.put(text, u"ล้างหน้าอัตโนมัติด้วยบอต")
 
-    pywikibot.output(u"'clear-sandbox' terminated. (%s)" % preload.getTime())
+    pywikibot.output(u"'clear-sandbox' terminated. (%s)" % libdate.getTime())
     pywikibot.stopme()

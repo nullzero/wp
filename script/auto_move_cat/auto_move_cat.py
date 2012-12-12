@@ -3,7 +3,7 @@
 import re, sys, time, os, traceback
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-try: import preload
+try: from lib import preload
 except:
     print "Cannot import preload. Exit!"
     sys.exit()
@@ -61,7 +61,7 @@ def catempty(title, flag):
     return len(listOfArticles) == 0
 
 def main(*args):
-    pywikibot.output(u"'move-category service' is invoked. (%s)" % preload.getTime())
+    pywikibot.output(u"'move-category service' is invoked. (%s)" % libdate.getTime())
         
     flag = False
     
@@ -81,7 +81,7 @@ def main(*args):
         return
     
     summary = u"ย้ายหมวดหมู่ ณ เวลา "    
-    pageMain.put(pre + u"-->" + SUFFIX, u"เริ่ม" + summary + preload.getTime())
+    pageMain.put(pre + u"-->" + SUFFIX, u"เริ่ม" + summary + libdate.getTime())
     
     text = post
 
@@ -114,7 +114,7 @@ def main(*args):
             isMove = True
             domove(vfrom, vto)
             line += u" || "
-            line += preload.getTime()
+            line += libdate.getTime()
             line += u"\n"
             report += line
         else:
@@ -141,16 +141,16 @@ def main(*args):
         text = pageReport.get(get_redirect = True)
         text = p_end.sub(u"", text, 1)
         text += report
-        pageReport.put(text, summary + preload.getTime())
+        pageReport.put(text, summary + libdate.getTime())
 
     if isPend:
         pagePending = pywikibot.Page(site, PAGEPENDING)
         text = pagePending.get(get_redirect = True)
         text = p_end.sub(u"", text, 1)
         text += pending
-        pagePending.put(text, summary + preload.getTime())
+        pagePending.put(text, summary + libdate.getTime())
         
-    pywikibot.output(u"'move-category service' terminated. (%s)" % preload.getTime())
+    pywikibot.output(u"'move-category service' terminated. (%s)" % libdate.getTime())
 
 if __name__ == "__main__":
     pywikibot.handleArgs("-log")
