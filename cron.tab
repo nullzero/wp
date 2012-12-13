@@ -1,6 +1,7 @@
-0 * * * * auto_move_cat
-0 */6 * * * clear_sandbox
-0 0 * * * uncategorize
-0 0 15 * * most_edits
-0 0 * * * redirect 
-0 0 * * * update
+0 * * * * /home/nullzero/wp/wpmanager auto_move_cat
+30 */6 * * * /home/nullzero/wp/wpmanager clear_sandbox
+15 7 * * * /home/nullzero/wp/wpmanager uncategorize
+0 0 15 * * /home/nullzero/wp/wpmanager most_edits
+7 1 * * * /home/nullzero/wp/wpmanager redirect 
+30 23 * * * /home/nullzero/wp/wpmanager update
+45 23 * * * /home/nullzero/wp/wpmanager update_calendar
