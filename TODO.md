@@ -11,3 +11,8 @@ av.py
 2. Check that whole content is English or not?
 3. Check incorrect vowels
 4. Auto revert 
+
+cleaner
+-------
+1. misspelled word
+2. url decode

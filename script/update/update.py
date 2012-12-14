@@ -23,17 +23,6 @@ if __name__ == "__main__":
     month = libdate.monthThai(today.month)
     day = today.day
     
-    pageName = u"แม่แบบ:เหตุการณ์ปัจจุบัน/%d_%s_%d" % (year, month, day)
-    if not miscellaneous.existPage(pageName):
-        page = pywikibot.Page(site, pageName)
-        page.put(
-u"""{{เหตุการณ์ปัจจุบัน/วันเดือนปี|%d|%d|%d}}
-
-<!-- ข่าวอยู่เหนือบรรทัดนี้ -->|}""" % (today.year, today.month, today.day)
-    , u"เตรียมเหตุการณ์วันที่ %d %s %d ด้วยบอต" % (day, month, year))
-    
-    #--
-    
     page = pywikibot.Page(site, u"แม่แบบ:วันสำคัญ")
     content = page.get()
     

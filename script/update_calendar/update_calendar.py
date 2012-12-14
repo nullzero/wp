@@ -56,6 +56,16 @@ if __name__ == "__main__":
     for i in range(numblank): content += u"|\n"
     now = numblank
     for i in range(1, libdate.getNumDay(today.year, today.month) + 1):
+        pageName = u"แม่แบบ:เหตุการณ์ปัจจุบัน/%d_%s_%d" % (year, month, i)
+        if not miscellaneous.existPage(pageName):
+            pywikibot.output(u"Create day %d" % i)
+            page = pywikibot.Page(site, pageName)
+            page.put(
+u"""{{เหตุการณ์ปัจจุบัน/วันเดือนปี|%d|%d|%d}}
+
+<!-- ข่าวอยู่เหนือบรรทัดนี้ -->|}""" % (today.year, today.month, i)
+                , u"เตรียมเหตุการณ์วันที่ %d %s %d ด้วยบอต" % (i, month, year))
+        
         if now % 7 == 0: content += u"|-\n"
         content += u"|'''[[%s|%d]]'''\n" % (u"แม่แบบ:เหตุการณ์ปัจจุบัน/%d_%s_%d" % (
             year, libdate.monthThai(today.month), i), i)

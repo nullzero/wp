@@ -9,7 +9,7 @@ except:
     sys.exit()
 
 from lib import libdate    
-from lib.miscellaneous import remove_wikicode, skip_section
+from lib.miscellaneous import remove_wikicode, skip_section, existPage
 from pagegenerators import NewpagesPageGenerator
 from userlib import User
 import wikipedia as pywikibot
@@ -131,9 +131,9 @@ if __name__ == "__main__":
     generator = MyNewpagesPageGenerator(number = NUMOFNEWPAGE, namespace = 1)
     for page, username in generator:
         pywikibot.output(u"I am checking " + page.title()[len(prefix):] + u" by user " + username)
-        try:
-            articlePage = pywikibot.Page(site, page.title()[len(prefix):])
-        except:
+        if existPage(page.title()[len(prefix):]):
+            pywikibot.output(u"Nothing to do!")
+        else:
             pywikibot.output(u"this page does not link with exist page.")
             reqDelete(page, u"{{ลบ|หน้าที่ขึ้นอยู่กับหน้าว่าง}}", u"")
     
