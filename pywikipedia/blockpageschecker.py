@@ -115,6 +115,7 @@ templateSemiMoveProtection = {
             'en': None,
             'it':[r'\{\{(?:[Tt]emplate:|)[Aa]vvisobloccospostamento(?:|[ _]scad\|.*?|\|.*?)\}\}'],
             'ja':[ur'(?<!\<nowiki\>)\{\{(?:[Tt]emplate:|)移動半保護(?:[Ss]|)(?:\|.+|)\}\}(?!\<\/nowiki\>)\s*(?:\r\n|)*'],
+            'th': None,
             #'zh':[r'\{\{(?:[Tt]emplate:|)Protected|(?:MS|ms)(?:\|.+|)\}\}(\n+?|)',r'\{\{(?:[Tt]emplate:|)Mini-protected|(?:MS|ms)(?:\|.+|)\}\}(\n+?|)',r'\{\{(?:[Tt]emplate:|)Protected-logo|(?:MS|ms)(?:\|.+|)\}\}(\n+?|)'],
             }
 # Regex to get the total-protection move template
@@ -139,6 +140,7 @@ templateNoRegex = {
             'it':['{{Avvisobloccoparziale}}', '{{Avvisoblocco}}', None, None, '{{Protetta}}'],
             'fr':['{{Semi-protection}}', '{{Protection}}', None, None, None],
             'ja':[u'{{半保護}}', u'{{保護}}', u'{{移動半保護}}', u'{{移動保護}}', None],
+            'th':[u'{{กึ่งล็อก|small=yes}}', u'{{ล็อก|small=yes}}', None, u'{{ล็อกย้าย|small=yes}}', None]
             #'zh':[u'{{Protected/semi}}',u'{{Protected}}',u'{{Protected/ms}}',u'{{Protected/move}}', None],
             }
 
@@ -362,6 +364,9 @@ def main():
                     msg += ', skipping...'
                 pywikibot.output(msg)
             else:
+                with fopen("mylog.txt", "a") as ff:
+                    ff.write(page.title().decode('utf-8') + '\n')
+                    
                 pywikibot.output(u'The page is editable only for the autoconfirmed users, but the template seems not correct. Fixing...')
                 if TU != None:
                     text, changes = re.subn(TemplateInThePage[1], TNR[4], text)
