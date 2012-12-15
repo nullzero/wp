@@ -174,7 +174,7 @@ __version__='$Id: replace.py 10576 2012-10-14 17:16:30Z xqt $'
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-try: import preload
+try: import lib.preload
 except:
     print "Cannot import preload. Exit!"
     sys.exit()

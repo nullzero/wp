@@ -63,6 +63,8 @@ def reqDelete(page, reason, original_content):
     page.put(u"{{ลบ|" + reason + u"}}\n" + original_content, 
             u"บอตแจ้ง" + reason + u" หากเกิดข้อผิดพลาด โปรดแจ้ง[[คุยกับผู้ใช้:Nullzero|ที่นี่]]")
 
+pat_skip = re.compile(u"\{\{(\ )*(ลบ|delete|สั้นมาก|ละเมิดลิขสิทธิ์).*?\}\}", re.DOTALL | re.IGNORECASE)
+
 if __name__ == "__main__":
     pywikibot.handleArgs(u"-log")
     pywikibot.output(u"'av-script' is invoked. (%s)" % libdate.getTime())
@@ -91,7 +93,6 @@ if __name__ == "__main__":
             continue
             
         # {{done}}
-        pat_skip = re.compile(u"\{\{(\ )*(ลบ|delete|สั้นมาก|ละเมิดลิขสิทธิ์).*?\}\}")
         if pat_skip.search(original_content) is not None:
             pywikibot.output(u"Skip! This is a legal article")
             continue
@@ -134,8 +135,9 @@ if __name__ == "__main__":
         if existPage(page.title()[len(prefix):]):
             pywikibot.output(u"Nothing to do!")
         else:
-            pywikibot.output(u"this page does not link with exist page.")
-            reqDelete(page, u"{{ลบ|หน้าที่ขึ้นอยู่กับหน้าว่าง}}", u"")
+            if not pat_skip.search(original_content) is not None:
+                pywikibot.output(u"this page does not link with exist page.")
+                reqDelete(page, u"หน้าที่ขึ้นอยู่กับหน้าว่าง", u"")
     
     pywikibot.output(u"'av-script' terminated. (%s)" % libdate.getTime())
     pywikibot.stopme()

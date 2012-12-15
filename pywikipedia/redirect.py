@@ -63,7 +63,7 @@ and arguments can be:
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-try: import preload
+try: import lib.preload
 except:
     print "Cannot import preload. Exit!"
     sys.exit()

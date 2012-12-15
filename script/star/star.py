@@ -29,7 +29,8 @@ def dochange(pagename):
     
     keepcolumn = [([u"พ.ศ.", u"ปี"], u"ปี พ.ศ."), 
         ([u"ละคร", u"ภาพยนตร์", u"ชื่อเรื่อง", u"ละครเวที"], u"เรื่อง"),
-        ([u"รับบท", u"บทบาท"], u"รับบทเป็น")]
+        ([u"รับบท", u"บทบาท"], u"รับบทเป็น"),
+        ([u"หมายเหตุและรางวัล"], u"หมายเหตุ")]
 
     for table in tablelist:
         try:
@@ -97,14 +98,14 @@ def dochange(pagename):
                 continue
                     
             output = u'{| class="wikitable"\n|-\n!'
-            for i in keepcolumn: output += i[1] + u"!!"
+            for i in keepcolumn: output += i[1] + u" !!"
             output = output[:-2] + u"\n"
             for i in range(n):
                 output += u"|-\n"
                 output += u"|"
                 for j in range(len(keepcolumn)):
                     if stable[i][mark[j]] is not None:
-                        output += stable[i][mark[j]] + u"||"
+                        output += stable[i][mark[j]] + u" ||"
                 
                 output = output[:-2] + u"\n"
             output += u"|}"
