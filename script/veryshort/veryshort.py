@@ -29,7 +29,7 @@ if __name__ == "__main__":
         original_content = page.get()
         content = remove_wikicode(original_content, space = True)
         
-        if len(content) >= 700:
+        if len(content) >= 1000:
             pywikibot.output(page.title())
             pat = re.compile(u"\{\{สั้นมาก\}\}\s*")
             original_content = pat.sub(u"", original_content)
