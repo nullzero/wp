@@ -165,6 +165,7 @@ def remove_wikicode(text, re_dotall = True, remove_quote = EXCLUDEQUOTE, debug =
     text = reImageC.sub("", text)
 
     # replace piped wikilink
+    text = re.sub("\[\[[\w-]+:.*?\]\]\n", "", text)
     text = re.sub("\[\[[^\]]*?\|(.*?)\]\]", "\\1", text)
 
     # remove unicode and polytonic template
