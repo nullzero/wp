@@ -30,8 +30,9 @@ def dochange(pagename):
     keepcolumn = [([u"พ.ศ.", u"ปี"], u"ปี พ.ศ."), 
         ([u"ละคร", u"ภาพยนตร์", u"ชื่อเรื่อง", u"ละครเวที"], u"เรื่อง"),
         ([u"รับบท", u"บทบาท"], u"รับบทเป็น"),
-        ([u"หมายเหตุและรางวัล"], u"หมายเหตุ")]
-
+        ([u"หมายเหตุและรางวัล"], u"หมายเหตุ"),
+    ]
+    
     for table in tablelist:
         try:
             column = []
@@ -41,44 +42,42 @@ def dochange(pagename):
             skipThisTable = False
             startOperation = False
             pre, post = content.split(table)
+            
             lines = table.splitlines()
-            i = 0
+            for i in xrange(len(lines)):
+                if lines[i].strip().startswith(u"|-"):
+                    lines[i] = u"|-"
+                    
+            table = u"\n".join(lines)
+            table = table.replace(u"||", u"\n|")
+            table = table.replace(u"!!", u"\n!")
+            lines = table.splitlines()
+            i, j = -1, 0
             for line in lines:
                 line = line.strip()
-                if len(line) == 0: continue
-                if len(line) == 1: raise Exception
-                if(line[0:2] == u"|-"): continue
-                if line[0] == u"!":
-                    line = line[1:]
-                    cells = line.split(u"!!")
-                    for cell in cells:
-                        cell = cell.strip()
-                        result = p_wikilink.match(cell)
-                        if result is not None: cell = result.group(1)
-                        column.append(cell)
-                        
+                if line.startswith(u"|-"):
+                    if startOperation:
+                        i += 1
+                        j = 0
+                elif line.startswith(u"|}"):
+                    break
+                elif line.startswith(u"!"):
                     startOperation = True
-                    continue
+                    column.append(p_wikilink.sub("\g<1>", line[1:].strip()))
+                elif line.startswith(u"|"):
+                    while lock[i][j]: j += 1
                     
-                if not startOperation: continue
-                if line[0:2] == u"|}": break
-                if line[0] == "|": line = line[1:]
-                cells = line.split(u"||")
-                j = 0
-                for cell in cells:
-                    text = cell.strip()
+                    text = line[1:].strip()
                     result = p_rowspan.search(text)
                     if result is not None:
                         rowspan = result.group(3)
-                        for k in range(i + 1, i + int(rowspan)): lock[k][j] = True
-                        
-                    while lock[i][j]: j += 1
+                        for k in xrange(i + 1, i + int(rowspan)):
+                            lock[k][j] = True
+                            
                     stable[i][j] = text
                     j += 1
                     
-                i += 1
-            
-            n = i
+            n = i + 1
             
             for idx, val in enumerate(keepcolumn):
                 vlist, vstr = val
@@ -100,10 +99,10 @@ def dochange(pagename):
             output = u'{| class="wikitable"\n|-\n!'
             for i in keepcolumn: output += i[1] + u" !!"
             output = output[:-2] + u"\n"
-            for i in range(n):
+            for i in xrange(n):
                 output += u"|-\n"
                 output += u"|"
-                for j in range(len(keepcolumn)):
+                for j in xrange(len(keepcolumn)):
                     if stable[i][mark[j]] is not None:
                         output += stable[i][mark[j]] + u" ||"
                 
@@ -125,6 +124,7 @@ if __name__ == "__main__":
     with open(QUEUE, "r") as f: content = f.read()
     with open(QUEUE, "w") as f: pass
     lines = content.splitlines()
+    #lines = ["รายชื่อผลงานของณเดชน์_คูกิมิยะ"]
     
     for i in lines:
         pywikibot.output(i)

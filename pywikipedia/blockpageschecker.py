@@ -115,7 +115,6 @@ templateSemiMoveProtection = {
             'en': None,
             'it':[r'\{\{(?:[Tt]emplate:|)[Aa]vvisobloccospostamento(?:|[ _]scad\|.*?|\|.*?)\}\}'],
             'ja':[ur'(?<!\<nowiki\>)\{\{(?:[Tt]emplate:|)移動半保護(?:[Ss]|)(?:\|.+|)\}\}(?!\<\/nowiki\>)\s*(?:\r\n|)*'],
-            'th': None,
             #'zh':[r'\{\{(?:[Tt]emplate:|)Protected|(?:MS|ms)(?:\|.+|)\}\}(\n+?|)',r'\{\{(?:[Tt]emplate:|)Mini-protected|(?:MS|ms)(?:\|.+|)\}\}(\n+?|)',r'\{\{(?:[Tt]emplate:|)Protected-logo|(?:MS|ms)(?:\|.+|)\}\}(\n+?|)'],
             }
 # Regex to get the total-protection move template
@@ -364,9 +363,6 @@ def main():
                     msg += ', skipping...'
                 pywikibot.output(msg)
             else:
-                with fopen("mylog.txt", "a") as ff:
-                    ff.write(page.title().decode('utf-8') + '\n')
-                    
                 pywikibot.output(u'The page is editable only for the autoconfirmed users, but the template seems not correct. Fixing...')
                 if TU != None:
                     text, changes = re.subn(TemplateInThePage[1], TNR[4], text)
@@ -410,6 +406,7 @@ def main():
 
             elif TSMP != None or TU != None:
                 # implicitely moveRestr[0] = 'autoconfirmed', move-semi-protection
+                """
                 if TemplateInThePage[0] == 'autoconfirmed-move' or TemplateInThePage[0] == 'unique':
                     pywikibot.output(u'The page is movable only for the autoconfirmed users, skipping...')
                     if TU != None:
@@ -420,6 +417,9 @@ def main():
                         text, changes = re.subn(TemplateInThePage[1], TNR[4], text)
                     else:
                         text, changes = re.subn(TemplateInThePage[1], TNR[2], text)
+                """
+                with open("fail.txt", "a") as ff:
+                    ff.write(page.title().encode("utf-8") + '\n')
 
             if changes == 0:
                 # We tried to fix move-protection templates, but it did not work.
