@@ -108,10 +108,10 @@ def getRevision(revid):
     }
     return query.GetData(params, site)['query']['pages'].itervalues().next()
 
+reverteddict = {}
+
 def revert(page, summary):
     pywikibot.output(page['title'] + u": " + summary)
-    
-    reverteddict = {}
     
     if page['title'] in reverteddict:
         if reverteddict[page['title']] >= 3:
