@@ -30,7 +30,7 @@ def dochange(pagename):
     keepcolumn = [([u"พ.ศ.", u"ปี"], u"ปี พ.ศ."), 
         ([u"ละคร", u"ภาพยนตร์", u"ชื่อเรื่อง", u"ละครเวที"], u"เรื่อง"),
         ([u"รับบท", u"บทบาท"], u"รับบทเป็น"),
-        ([u"หมายเหตุและรางวัล"], u"หมายเหตุ"),
+        #([u"หมายเหตุและรางวัล"], u"หมายเหตุ"),
     ]
     
     for table in tablelist:
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     with open(QUEUE, "r") as f: content = f.read()
     with open(QUEUE, "w") as f: pass
     lines = content.splitlines()
-    #lines = ["รายชื่อผลงานของณเดชน์_คูกิมิยะ"]
+    #lines = ["รัฐภูมิ_โตคงทรัพย์"]
     
     for i in lines:
         pywikibot.output(i)
