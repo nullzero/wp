@@ -110,6 +110,17 @@ def getRevision(revid):
 
 def revert(page, summary):
     pywikibot.output(page['title'] + u": " + summary)
+    
+    reverteddict = {}
+    
+    if page['title'] in reverteddict:
+        if reverteddict[page['title']] >= 3:
+            pywikibot.output(u"Don't make a war!")
+            return
+        reverteddict[page['title']] += 1
+    else:
+        reverteddict[page['title']] = 0
+        
     params = {
         'action': 'edit',
         'pageid': page['pageid'],
