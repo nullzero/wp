@@ -14,7 +14,7 @@ import wikipedia as pywikibot
 
 site = pywikibot.getSite()
 
-def recentchanges(number = 100, rcstart = None, rcend = None, rcshow = ['!redirect'],
+def recentchanges(number = 100, rcstart = None, rcend = None, rcshow = ['!redirect', '!bot'],
     rcdir = 'older', rctype = 'edit|new', namespace = None, repeat = False, user = None):
     """
     Yield recent changes as Page objects
@@ -108,24 +108,69 @@ def getRevision(revid):
     }
     return query.GetData(params, site)['query']['pages'].itervalues().next()
 
+def getRevisionContent(revid):
+    params = {
+        'action'   : 'query',
+        'prop'     : 'revisions',
+        'revids'   : revid,
+        'rvprop'   : 'content',
+    }
+    return query.GetData(params, site)['query']['pages'].itervalues().next()['revisions'][0]['*']
+
+def allContribute(pagename):
+    params = {
+        'action'   : 'query',
+        'prop'     : 'revisions',
+        'titles'   : pagename,
+        'rvprop'   : 'user|ids',
+        'rvlimit'  : 5000
+    }
+    return query.GetData(params, site)['query']['pages'].itervalues().next()['revisions']
+
+def checkpagespam(pagename, revision, user):
+    contribs = allContribute(pagename)
+    cnt = 0
+    startOp = False
+    for i in contribs:
+        if startOp and user == i['user']: cnt += 1
+        if i['revid'] == revision: startOp = True
+    
+    pywikibot.output(u"cnt = %s" % cnt)
+    return cnt < 3
+
 reverteddict = {}
 
-def revert(page, summary):
+SUFFIX = u" หากผิดพลาดโปรดแจ้ง[[คุยกับผู้ใช้:Nullzero|ที่นี่]]"
+
+def revert(page, reason, newpage):
+    action = u"ลบ" if newpage else u"ย้อน"
+    summary = action + u"บทความ" + reason
     pywikibot.output(page['title'] + u": " + summary)
     
     if page['title'] in reverteddict:
-        if reverteddict[page['title']] >= 3:
+        if reverteddict[page['title']] > 1:
             pywikibot.output(u"Don't make a war!")
             return
         reverteddict[page['title']] += 1
     else:
         reverteddict[page['title']] = 0
+    
+    if newpage:
+        tpage = pywikibot.Page(site, page['title'])
+        if int(page['ns']) % 2 == 1:
+            tpage.put(u"{{อธิบายหน้าพูดคุย}}", summary + SUFFIX)
+        else:
+            if (int(page['ns']) != 0) and (re.search(u"(ทดลองเขียน|กระบะทราย|กระดาษทด)", page['title']) is not None):
+                pywikibot.output(u"หน้าทดลอง")
+            else:
+                tpage.put(u"{{ลบ|" + summary + "}}", summary + SUFFIX)
+        return
         
     params = {
         'action': 'edit',
         'pageid': page['pageid'],
         'undo'  : page['revisions'][0]['revid'],
-        'summary': summary,
+        'summary': summary + SUFFIX,
         'token'  : site.getToken(),
         'bot'    : 1,
         'minor'  : 1,
@@ -141,7 +186,7 @@ def revert(page, summary):
     except:
         print response, data
         pywikibot.output(u"Unsucceed to revert" + page['title'])
-
+        
 if __name__ == "__main__":
     pywikibot.handleArgs("-log")
     pywikibot.output(u"'spam script' is invoked. (%s)" % libdate.getTime())
@@ -154,11 +199,11 @@ if __name__ == "__main__":
     vlist.append(u"วิกิพีเดีย:สอนการใช้งาน_(วิกิพีเดียลิงก์)/กระดาษทด")
     vlist.append(u"วิกิพีเดีย:ทดลองเขียน")
     
-    gen = recentchanges(number = 20, namespace = "|".join([str(x) for x in xrange(16)]), repeat = True)
+    gen = recentchanges(number = 5, namespace = "|".join([str(x) for x in xrange(16)]), repeat = True)
     for revision in gen:
         newpage = False
         page = getRevision(revision[1]['revid'])
-        pywikibot.output(u"I'm checking " + page['title'])
+        pywikibot.output(u"I'm checking " + page['title'] + " @ " + page['revisions'][0]['timestamp'])
         
         user = userlib.User(site, page['revisions'][0]['user'])
         if user.isRegistered():
@@ -166,38 +211,17 @@ if __name__ == "__main__":
                 pywikibot.output(u"I trust you!")
                 continue
                 
-        if page['revisions'][0]['diff']['from'] == u"":
+        if not page['revisions'][0]['diff']['from']:
             pywikibot.output(u"This is a new page")
             newpage = True
-            change = page.get()
+            change = getRevisionContent(revision[1]['revid'])
         else:
             change = page['revisions'][0]['diff']['*']
-            
-        lines = change.splitlines()
         
-        sizetag = 0
-        sizecontent = 0
-        linetag = 0
-        linecontent = 0
-        
-        for line in lines:
-            line = line.strip()
-            if line.startswith(u'<td class="diff-addedline">'):
-                line = re.sub(u"<td.*?>", u"", line)
-                line = re.sub(u"</td>", u"", line)
-                line = re.sub(u"<div>", u"", line)
-                line = re.sub(u"</div>", u"", line)
-                line = re.sub(u"<span.*?>", u"", line)
-                line = re.sub(u"</span>", u"", line)
-                line = re.sub(u"&lt;", u"<", line)
-                line = re.sub(u"&gt;", u">", line)
-                
-                if (re.search("http://", line) is not None) and (re.search("<.?ref>", line) is None):
-                    sizetag += len(line)
-                    linetag += 1
-                else:
-                    sizecontent += len(line)
-                    linecontent += 1
+        if re.search("\{\{(ลบ|Delete|Sd|ละเมิดลิขสิทธิ์|Copyvio|ละเมิดลิขสิทธิ์วัน).*?\}\}", 
+            change, re.IGNORECASE | re.DOTALL):
+            pywikibot.output(u"There exist a label!")
+            continue
         
         if re.sub("\ ", "_", page['title']) not in vlist:
             foreignchar = 0
@@ -212,18 +236,46 @@ if __name__ == "__main__":
                 elif ord(i) > ord(u' '): foreignchar += 1
             
             if (thaichar <= 10) or (thaichar * 30 <= foreignchar):
-                revert(page, u"ย้อนบทความภาษาต่างประเทศ หากผิดพลาดโปรดแจ้ง[[คุยกับผู้ใช้:Nullzero|ที่นี่]]")
+                revert(page, u"ภาษาต่างประเทศ", newpage)
             else:
                 pywikibot.output(u"ภาษาไทยครับ!")
+        
+        lines = change.splitlines()
+        
+        sizetag = 0
+        sizecontent = 0
+        linetag = 0
+        linecontent = 0
+        
+        for line in lines:
+            line = line.strip()
+            if line.startswith(u'<td class="diff-addedline">') or newpage:
+                if not newpage:
+                    line = re.sub(u"<td.*?>", u"", line)
+                    line = re.sub(u"</td>", u"", line)
+                    line = re.sub(u"<div>", u"", line)
+                    line = re.sub(u"</div>", u"", line)
+                    line = re.sub(u"<span.*?>", u"", line)
+                    line = re.sub(u"</span>", u"", line)
+                    line = re.sub(u"&lt;", u"<", line)
+                    line = re.sub(u"&gt;", u">", line)
+                    
+                if (re.search("http://", line) is not None) and (re.search("<.?ref>", line) is None):
+                    sizetag += len(line)
+                    linetag += 1
+                else:
+                    sizecontent += len(line)
+                    linecontent += 1
         
         if sizetag == 0:
             pywikibot.output(u"This user does not spam :)")
             continue
         
-        if (sizetag * 30 >= sizecontent) or (linetag * 30 >= linecontent):
-            revert(page, u"ย้อนการสแปมอัตโนมัติ หากผิดพลาดโปรดแจ้ง[[คุยกับผู้ใช้:Nullzero|ที่นี่]]")
+        if (sizetag * 10 >= sizecontent) and \
+            checkpagespam(page['title'], revision[1]['revid'], page['revisions'][0]['user']):
+            revert(page, u"สแปม", newpage)
         else:
-            pywikibot.output(u"Link found but not frequent enough")
+            pywikibot.output(u"Link found but it seems that he doesn't spam")
         
     pywikibot.output(u"'spam script' terminated. (%s)" % libdate.getTime())
     pywikibot.stopme()
