@@ -178,7 +178,7 @@ fixes = {
     'nullzero': {
         'regex': True,
         'msg'  : {
-            'th:' u'โรบอต: แก้คำผิด'
+            'th:': u'โรบอต: แก้คำผิด'
         },
         'replacements' : [
             (u'กฏ',  u'กฎ'),
