@@ -163,7 +163,7 @@ def revert(page, reason, newpage):
             if (int(page['ns']) != 0) and (re.search(u"(ทดลองเขียน|กระบะทราย|กระดาษทด)", page['title']) is not None):
                 pywikibot.output(u"หน้าทดลอง")
             else:
-                tpage.put(u"{{ลบ|" + summary + "}}", summary + SUFFIX)
+                tpage.put(u"{{ลบ|" + summary + "}}\n" + tpage.get(), summary + SUFFIX)
         return
         
     params = {
