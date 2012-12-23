@@ -898,6 +898,7 @@ def main(*args):
     # Pre-compile all regular expressions here to save time later
     for i in range(len(replacements)):
         old, new = replacements[i]
+        print old, new
         if not regex:
             old = re.escape(old)
         oldR = re.compile(old, flags)
