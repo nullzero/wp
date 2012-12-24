@@ -36,7 +36,7 @@ def domove(source, dest):
         editSummary = u"", inPlace = False, titleRegex = None, withHistory = False)
     robot.run()
     pageCat = pywikibot.Page(site, u"หมวดหมู่:" + source)
-    pageCat.put(u"{{bots|allow=" + env['USER'] + "}}\n{{ลบ|บอตย้ายหมวดหมู่ไป[[:หมวดหมู่:" + dest + u"]] แล้ว}}", 
+    pageCat.put(u"{{bots|allow=" + env['USER'].decode("utf-8") + "}}\n{{ลบ|บอตย้ายหมวดหมู่ไป[[:หมวดหมู่:" + dest + u"]] แล้ว}}", 
         u"ย้ายหมวดหมู่โดยบอต")
 
 def verify(name, flag):
@@ -171,7 +171,7 @@ if __name__ == "__main__":
     except:
         var = traceback.format_exc()
         pywikibot.output(u"Unexpected error!")
-        pywikibot.output(var.encode("utf-8"))
+        pywikibot.output(var.decode("utf-8"))
         sys.exit()
         
     try: os.remove(lockfile)
