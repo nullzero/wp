@@ -22,7 +22,7 @@ if __name__ == "__main__":
     site = pywikibot.getSite()
     
     genfac = pagegenerators.GeneratorFactory()
-    generator = genfac.getCategoryGen(u'-cat:บทความที่มีเนื้อหาน้อยมาก', len(u'-cat'))
+    generator = genfac.getCategoryGen(u':บทความที่มีเนื้อหาน้อยมาก', 0))
     
     for page in generator:
         pywikibot.output(u"I am checking " + page.title())
