@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import sys, os, re, time
+import sys, os, re, time, traceback
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 try: from lib import preload
@@ -170,7 +170,8 @@ def revert(page, reason, newpage):
             if (int(page['ns']) != 0) and (re.search(u"(ทดลองเขียน|กระบะทราย|กระดาษทด)", page['title']) is not None):
                 pywikibot.output(u"หน้าทดลอง")
             else:
-                tpage.put(u"{{ลบ|" + summary + "}}\n" + tpage.get(), summary + SUFFIX)
+                try: tpage.put(u"{{ลบ|" + summary + "}}\n" + tpage.get(), summary + SUFFIX)
+                except: pywikibot.output(traceback.format_exc().decode("utf-8"))
         return
         
     params = {
@@ -200,207 +201,275 @@ def findoverlap(pattern, text):
     cnt = 0
     for i in it: cnt += 1
     return cnt
+
+ThaiChar = [unichr(x) for x in xrange(ord(u'ก'), ord(u'ฮ') + 1)]
+EngCharString = u""
+ThaiCharString = u""
+for i in xrange(128): EngCharString += unichr(i)
+for i in ThaiChar: ThaiCharString += i
+EngCharString = u"[" + EngCharString + u"]"
+ThaiCharString = u"[" + ThaiCharString + u"]"
+ThaiVowelFront = u"[เแโใไ]"
+ThaiVowelBack = u"[ะาๅ]"
+ThaiVowelUm = u"[ำ]"
+ThaiVowelUp = u"[ัิีึืํ]"
+ThaiVowelDown = u"[ฺุู]"
+ThaiVowelTaiku = u"[็]"
+ThaiSound = u"[่้๊๋]"
+ThaiTantakad = u"[์]"
+ThaiPaismall = u"[ฯ]"
+ThaiAgain = u"[ๆ]"
+#autobio = [u"ชื่อเล่น", u"ส่วนสูง", u"น้ำหนัก", u"เกิด.*วัน", u"(จบ|เรียน|ศึกษา)", u"(facebook|เฟ[สซ]บุ๊[กค]|twitter)", u"อีเมล", u"เว็?[บป]"]
+vlist = []
+vlist.append(u"วิกิพีเดีย:สอนการใช้งาน_(จัดรูปแบบ)/กระดาษทด")
+vlist.append(u"วิกิพีเดีย:สอนการใช้งาน_(แหล่งข้อมูลอื่น)/กระดาษทด")
+vlist.append(u"วิกิพีเดีย:สอนการใช้งาน_(แก้ไข)/กระดาษทด")
+vlist.append(u"วิกิพีเดีย:สอนการใช้งาน_(วิกิพีเดียลิงก์)/กระดาษทด")
+vlist.append(u"วิกิพีเดีย:ทดลองเขียน")
+
+with open("blacklist.txt") as f:
+    lines = f.readlines()
+    blacklist = [x.decode("utf-8").strip() for x in lines]
+
+with open("userblacklist.txt") as f:
+    lines = f.readlines()
+    userblacklist = [x.decode("utf-8").strip() for x in lines]
+
+def check(revision):
+    newpage = False
+    page = getRevision(revision[1]['revid'])
+    pywikibot.output(u"I'm checking " + page['title'] + " @ " + page['revisions'][0]['timestamp'])
+    
+    if page['title'].endswith(u".js") or page['title'].endswith(u".css"):
+        pywikibot.output("It's a file!")
+        return
+            
+    user = userlib.User(site, page['revisions'][0]['user'])
+    if user.isRegistered():
+        if 'autoconfirmed' in user.groups():
+            pywikibot.output(u"I trust you!")
+            return
+            
+    if not page['revisions'][0]['diff']['from']:
+        pywikibot.output(u"This is a new page")
+        newpage = True
+        change = getRevisionContent(revision[1]['revid'])
+    else:
+        change = page['revisions'][0]['diff']['*']
+    
+    try:
+        curpage = pywikibot.Page(site, page['title'])
+        content = curpage.get()
+    except:
+        pywikibot.output(u"Can't get page content!")
+        pywikibot.output(traceback.format_exc().decode("utf-8"))
+        return
+    
+    if re.search(u"\{\{(ลบ|Delete|Sd|ละเมิดลิขสิทธิ์|Copyvio).*?\}\}", 
+        content, re.IGNORECASE | re.DOTALL):
+        pywikibot.output(u"There exist a label!")
+        return
+    
+    if re.sub("\ ", "_", page['title']) not in vlist:
+        foreignchar = 0
+        thaichar = 0
+        
+        content = re.sub("\[\[[\w-]+:.*?\]\]\n", "", content)
+    
+        for i in content:
+            if i in ThaiChar: thaichar += 1
+            elif ord(i) > ord(u' '): foreignchar += 1
+        
+        if page['ns'] == 0:
+            if thaichar * 20 <= foreignchar or thaichar <= 10:
+                revert(page, u"ภาษาต่างประเทศ", newpage)
+                return
+            else:
+                pywikibot.output(u"ภาษาไทยครับ!")
+    
+    """
+    for user in userblacklist:
+        if re.search(user, page['revisions'][0]['user']) is not None:
+            revert(page, u"ก่อกวน", newpage)
+            return
+    """
+    
+    lines = change.splitlines()
+    
+    sizetag = 0
+    sizecontent = 0
+    sizedeleted = 0
+    sizeadded = 0
+    cntvowelwrong = 0
+    #cntautobio = 0
+    
+    """
+    for i in autobio:
+        if re.search(i, line) is not None:
+            print i
+            cntautobio += 1
+    """
+    
+    #if len(content) < 500: cntautobio += 1
+    
+    if newpage and len(content) < 72:
+        revert(page, u"ไม่เป็นสารานุกรม", True)
+    
+    for line in lines:
+        line = line.strip()
+        if line.startswith(u'<td class="diff-deletedline">'):
+            line = re.sub(u"<td.*?>", u"", line)
+            line = re.sub(u"</td>", u"", line)
+            line = re.sub(u"<div>", u"", line)
+            line = re.sub(u"</div>", u"", line)
+            line = re.sub(u"<span.*?>", u"", line)
+            line = re.sub(u"</span>", u"", line)
+            line = re.sub(u"&lt;", u"<", line)
+            line = re.sub(u"&gt;", u">", line)
+            sizedeleted += len(line)
+        elif line.startswith(u'<td class="diff-addedline">') or newpage:
+            if not newpage:
+                line = re.sub(u"<td.*?>", u"", line)
+                line = re.sub(u"</td>", u"", line)
+                line = re.sub(u"<div>", u"", line)
+                line = re.sub(u"</div>", u"", line)
+                line = re.sub(u"<span.*?>", u"", line)
+                line = re.sub(u"</span>", u"", line)
+                line = re.sub(u"&lt;", u"<", line)
+                line = re.sub(u"&gt;", u">", line)
+            
+            sizeadded += len(line)
+            if (re.search("http://", line) is not None) and (re.search("<.?ref>", line) is None):
+                sizetag += len(line)
+            else:
+                sizecontent += len(line)
+            
+            for i in blacklist:
+                if re.search(i, line) is not None:
+                    revert(page, u"ก่อกวน", newpage)
+                    return
+            
+            cntvowelwrong += findoverlap(ThaiVowelFront + ThaiVowelFront, line)
+            cntvowelwrong += findoverlap(ThaiVowelFront + ThaiVowelBack, line)
+            cntvowelwrong += findoverlap(ThaiVowelFront + ThaiVowelUm, line)
+            cntvowelwrong += findoverlap(ThaiVowelFront + ThaiVowelUp, line)
+            cntvowelwrong += findoverlap(ThaiVowelFront + ThaiVowelDown, line)
+            cntvowelwrong += findoverlap(ThaiVowelFront + ThaiVowelTaiku, line)
+            cntvowelwrong += findoverlap(ThaiVowelFront + ThaiSound, line)
+            cntvowelwrong += findoverlap(ThaiVowelFront + ThaiTantakad, line)
+            cntvowelwrong += findoverlap(ThaiVowelFront + ThaiPaismall, line)
+            cntvowelwrong += findoverlap(ThaiVowelFront + ThaiAgain, line)
+            cntvowelwrong += findoverlap(ThaiVowelFront + EngCharString, line)
+                                 
+            cntvowelwrong += findoverlap(ThaiVowelBack + ThaiVowelUm, line)
+            cntvowelwrong += findoverlap(ThaiVowelBack + ThaiVowelUp, line)
+            cntvowelwrong += findoverlap(ThaiVowelBack + ThaiVowelDown, line)
+            cntvowelwrong += findoverlap(ThaiVowelBack + ThaiVowelTaiku, line)
+            cntvowelwrong += findoverlap(ThaiVowelBack + ThaiSound, line)
+            cntvowelwrong += findoverlap(ThaiVowelBack + ThaiTantakad, line)
+                                 
+            cntvowelwrong += findoverlap(ThaiVowelUm + ThaiVowelBack, line)
+            cntvowelwrong += findoverlap(ThaiVowelUm + ThaiVowelUm, line)
+            cntvowelwrong += findoverlap(ThaiVowelUm + ThaiVowelUp, line)
+            cntvowelwrong += findoverlap(ThaiVowelUm + ThaiVowelDown, line)
+            cntvowelwrong += findoverlap(ThaiVowelUm + ThaiVowelTaiku, line)
+            cntvowelwrong += findoverlap(ThaiVowelUm + ThaiSound, line)
+            cntvowelwrong += findoverlap(ThaiVowelUm + ThaiTantakad, line)
+                                 
+            cntvowelwrong += findoverlap(ThaiVowelUp + ThaiVowelBack, line)
+            cntvowelwrong += findoverlap(ThaiVowelUp + ThaiVowelUm, line)
+            cntvowelwrong += findoverlap(ThaiVowelUp + ThaiVowelUp, line)
+            cntvowelwrong += findoverlap(ThaiVowelUp + ThaiVowelDown, line)
+            cntvowelwrong += findoverlap(ThaiVowelUp + ThaiVowelTaiku, line)
+                                 
+            cntvowelwrong += findoverlap(ThaiVowelDown + ThaiVowelBack, line)
+            cntvowelwrong += findoverlap(ThaiVowelDown + ThaiVowelUm, line)
+            cntvowelwrong += findoverlap(ThaiVowelDown + ThaiVowelUp, line)
+            cntvowelwrong += findoverlap(ThaiVowelDown + ThaiVowelDown, line)
+            cntvowelwrong += findoverlap(ThaiVowelDown + ThaiVowelTaiku, line)
+                                 
+            cntvowelwrong += findoverlap(ThaiVowelTaiku + ThaiVowelBack, line)
+            cntvowelwrong += findoverlap(ThaiVowelTaiku + ThaiVowelUm, line)
+            cntvowelwrong += findoverlap(ThaiVowelTaiku + ThaiVowelUp, line)
+            cntvowelwrong += findoverlap(ThaiVowelTaiku + ThaiVowelDown, line)
+            cntvowelwrong += findoverlap(ThaiVowelTaiku + ThaiVowelTaiku, line)
+            cntvowelwrong += findoverlap(ThaiVowelTaiku + ThaiTantakad, line)
+                                 
+            cntvowelwrong += findoverlap(ThaiSound + ThaiVowelUp, line)
+            cntvowelwrong += findoverlap(ThaiSound + ThaiVowelDown, line)
+            cntvowelwrong += findoverlap(ThaiSound + ThaiVowelTaiku, line)
+            cntvowelwrong += findoverlap(ThaiSound + ThaiSound, line)
+            cntvowelwrong += findoverlap(ThaiSound + ThaiTantakad, line)
+                                 
+            cntvowelwrong += findoverlap(ThaiTantakad + ThaiVowelBack, line)
+            cntvowelwrong += findoverlap(ThaiTantakad + ThaiVowelUm, line)
+            cntvowelwrong += findoverlap(ThaiTantakad + ThaiVowelUp, line)
+            cntvowelwrong += findoverlap(ThaiTantakad + ThaiVowelDown, line)
+            cntvowelwrong += findoverlap(ThaiTantakad + ThaiVowelTaiku, line)
+            cntvowelwrong += findoverlap(ThaiTantakad + ThaiSound, line)
+            cntvowelwrong += findoverlap(ThaiTantakad + ThaiTantakad, line)
+                                 
+            cntvowelwrong += findoverlap(ThaiPaismall + ThaiVowelBack, line)
+            cntvowelwrong += findoverlap(ThaiPaismall + ThaiVowelUm, line)
+            cntvowelwrong += findoverlap(ThaiPaismall + ThaiVowelUp, line)
+            cntvowelwrong += findoverlap(ThaiPaismall + ThaiVowelDown, line)
+            cntvowelwrong += findoverlap(ThaiPaismall + ThaiVowelTaiku, line)
+            cntvowelwrong += findoverlap(ThaiPaismall + ThaiSound, line)
+            cntvowelwrong += findoverlap(ThaiPaismall + ThaiTantakad, line)
+            cntvowelwrong += findoverlap(ThaiPaismall + ThaiPaismall, line)
+            cntvowelwrong += findoverlap(ThaiPaismall + ThaiAgain, line)
+                                 
+            cntvowelwrong += findoverlap(ThaiAgain + ThaiVowelFront, line)
+            cntvowelwrong += findoverlap(ThaiAgain + ThaiVowelBack, line)
+            cntvowelwrong += findoverlap(ThaiAgain + ThaiVowelUm, line)
+            cntvowelwrong += findoverlap(ThaiAgain + ThaiVowelUp, line)
+            cntvowelwrong += findoverlap(ThaiAgain + ThaiVowelDown, line)
+            cntvowelwrong += findoverlap(ThaiAgain + ThaiVowelTaiku, line)
+            cntvowelwrong += findoverlap(ThaiAgain + ThaiSound, line)
+            cntvowelwrong += findoverlap(ThaiAgain + ThaiTantakad, line)
+            cntvowelwrong += findoverlap(ThaiAgain + ThaiPaismall, line)                
+                                 
+            cntvowelwrong += findoverlap(EngCharString + ThaiVowelBack, line)
+            cntvowelwrong += findoverlap(EngCharString + ThaiVowelUm, line)
+            cntvowelwrong += findoverlap(EngCharString + ThaiVowelUp, line)
+            cntvowelwrong += findoverlap(EngCharString + ThaiVowelDown, line)
+            cntvowelwrong += findoverlap(EngCharString + ThaiVowelTaiku, line)
+            cntvowelwrong += findoverlap(EngCharString + ThaiSound, line)
+            cntvowelwrong += findoverlap(EngCharString + ThaiTantakad, line)
+            cntvowelwrong += findoverlap(u"\w" + ThaiPaismall, line)
+            cntvowelwrong += findoverlap(u"\w" + ThaiAgain, line)
+            
+    if sizetag == 0: pywikibot.output(u"This user does not spam :)")
+    elif (sizetag * 5 >= sizecontent) and \
+        checkpagespam(page['title'], revision[1]['revid'], page['revisions'][0]['user']):
+        revert(page, u"สแปม", newpage)
+        return
+    else:
+        pywikibot.output(u"Link found but it seems that he doesn't spam")
+    
+    pywikibot.output(u"incorrect vowel = %d" % cntvowelwrong)
+    if cntvowelwrong >= 13:
+        revert(page, u"ก่อกวน", newpage)
+        return
+    else:
+        pywikibot.output(u"This is not vandalized edition")
+    
+    if (not page['title'].startswith(u"ผู้ใช้:" + page['revisions'][0]['user'])) and \
+        sizedeleted - sizeadded >= 1000:
+        revert(page, u"ถูกลบข้อมูลออก", False)
+        return
+    
+    """
+    if cntautobio >= 5:
+        revert(page, u"อัตชีวะประวัติ", newpage)
+    """
         
 if __name__ == "__main__":
     pywikibot.handleArgs("-log")
     pywikibot.output(u"'spam script' is invoked. (%s)" % libdate.getTime())
     
-    ThaiChar = [unichr(x) for x in xrange(ord(u'ก'), ord(u'ฮ') + 1)]
-    
-    EngCharString = u""
-    ThaiCharString = u""
-    for i in xrange(128): EngCharString += unichr(i)
-    for i in ThaiChar: ThaiCharString += i
-    EngCharString = u"[" + EngCharString + u"]"
-    ThaiCharString = u"[" + ThaiCharString + u"]"
-    
-    ThaiVowelFront = u"[เแโใไ]"
-    ThaiVowelBack = u"[ะาๅ]"
-    ThaiVowelUm = u"[ำ]"
-    ThaiVowelUp = u"[ัิีึืํ]"
-    ThaiVowelDown = u"[ฺุู]"
-    ThaiVowelTaiku = u"[็]"
-    ThaiSound = u"[่้๊๋]"
-    ThaiTantakad = u"[์]"
-    ThaiPaismall = u"[ฯ]"
-    ThaiAgain = u"[ๆ]"
-    vlist = []
-    vlist.append(u"วิกิพีเดีย:สอนการใช้งาน_(จัดรูปแบบ)/กระดาษทด")
-    vlist.append(u"วิกิพีเดีย:สอนการใช้งาน_(แหล่งข้อมูลอื่น)/กระดาษทด")
-    vlist.append(u"วิกิพีเดีย:สอนการใช้งาน_(แก้ไข)/กระดาษทด")
-    vlist.append(u"วิกิพีเดีย:สอนการใช้งาน_(วิกิพีเดียลิงก์)/กระดาษทด")
-    vlist.append(u"วิกิพีเดีย:ทดลองเขียน")
-    
-    gen = recentchanges(number = 5, namespace = "|".join([str(x) for x in xrange(16)]), repeat = True)
-    for revision in gen:
-        newpage = False
-        page = getRevision(revision[1]['revid'])
-        pywikibot.output(u"I'm checking " + page['title'] + " @ " + page['revisions'][0]['timestamp'])
-        
-        user = userlib.User(site, page['revisions'][0]['user'])
-        if user.isRegistered():
-            if 'autoconfirmed' in user.groups():
-                pywikibot.output(u"I trust you!")
-                continue
-                
-        if not page['revisions'][0]['diff']['from']:
-            pywikibot.output(u"This is a new page")
-            newpage = True
-            change = getRevisionContent(revision[1]['revid'])
-        else:
-            change = page['revisions'][0]['diff']['*']
-        
-        if re.search("\{\{(ลบ|Delete|Sd|ละเมิดลิขสิทธิ์|Copyvio|ละเมิดลิขสิทธิ์วัน).*?\}\}", 
-            change, re.IGNORECASE | re.DOTALL):
-            pywikibot.output(u"There exist a label!")
-            continue
-        
-        if re.sub("\ ", "_", page['title']) not in vlist:
-            foreignchar = 0
-            thaichar = 0
-        
-            curpage = pywikibot.Page(site, page['title'])
-            content = curpage.get()
-            content = re.sub("\[\[[\w-]+:.*?\]\]\n", "", content)
-        
-            for i in content:
-                if i in ThaiChar: thaichar += 1
-                elif ord(i) > ord(u' '): foreignchar += 1
-            
-            if (thaichar <= 10) or (thaichar * 20 <= foreignchar):
-                revert(page, u"ภาษาต่างประเทศ", newpage)
-                continue
-            else:
-                pywikibot.output(u"ภาษาไทยครับ!")
-        
-        lines = change.splitlines()
-        
-        sizetag = 0
-        sizecontent = 0
-        cntvowelwrong = 0
-        
-        for line in lines:
-            line = line.strip()
-            if line.startswith(u'<td class="diff-addedline">') or newpage:
-                if not newpage:
-                    line = re.sub(u"<td.*?>", u"", line)
-                    line = re.sub(u"</td>", u"", line)
-                    line = re.sub(u"<div>", u"", line)
-                    line = re.sub(u"</div>", u"", line)
-                    line = re.sub(u"<span.*?>", u"", line)
-                    line = re.sub(u"</span>", u"", line)
-                    line = re.sub(u"&lt;", u"<", line)
-                    line = re.sub(u"&gt;", u">", line)
-                    
-                if (re.search("http://", line) is not None) and (re.search("<.?ref>", line) is None):
-                    sizetag += len(line)
-                else:
-                    sizecontent += len(line)
-                
-                cntvowelwrong += findoverlap(ThaiVowelFront + ThaiVowelFront, line)
-                cntvowelwrong += findoverlap(ThaiVowelFront + ThaiVowelBack, line)
-                cntvowelwrong += findoverlap(ThaiVowelFront + ThaiVowelUm, line)
-                cntvowelwrong += findoverlap(ThaiVowelFront + ThaiVowelUp, line)
-                cntvowelwrong += findoverlap(ThaiVowelFront + ThaiVowelDown, line)
-                cntvowelwrong += findoverlap(ThaiVowelFront + ThaiVowelTaiku, line)
-                cntvowelwrong += findoverlap(ThaiVowelFront + ThaiSound, line)
-                cntvowelwrong += findoverlap(ThaiVowelFront + ThaiTantakad, line)
-                cntvowelwrong += findoverlap(ThaiVowelFront + ThaiPaismall, line)
-                cntvowelwrong += findoverlap(ThaiVowelFront + ThaiAgain, line)
-                cntvowelwrong += findoverlap(ThaiVowelFront + EngCharString, line)
-                                     
-                cntvowelwrong += findoverlap(ThaiVowelBack + ThaiVowelUm, line)
-                cntvowelwrong += findoverlap(ThaiVowelBack + ThaiVowelUp, line)
-                cntvowelwrong += findoverlap(ThaiVowelBack + ThaiVowelDown, line)
-                cntvowelwrong += findoverlap(ThaiVowelBack + ThaiVowelTaiku, line)
-                cntvowelwrong += findoverlap(ThaiVowelBack + ThaiSound, line)
-                cntvowelwrong += findoverlap(ThaiVowelBack + ThaiTantakad, line)
-                                     
-                cntvowelwrong += findoverlap(ThaiVowelUm + ThaiVowelBack, line)
-                cntvowelwrong += findoverlap(ThaiVowelUm + ThaiVowelUm, line)
-                cntvowelwrong += findoverlap(ThaiVowelUm + ThaiVowelUp, line)
-                cntvowelwrong += findoverlap(ThaiVowelUm + ThaiVowelDown, line)
-                cntvowelwrong += findoverlap(ThaiVowelUm + ThaiVowelTaiku, line)
-                cntvowelwrong += findoverlap(ThaiVowelUm + ThaiSound, line)
-                cntvowelwrong += findoverlap(ThaiVowelUm + ThaiTantakad, line)
-                                     
-                cntvowelwrong += findoverlap(ThaiVowelUp + ThaiVowelBack, line)
-                cntvowelwrong += findoverlap(ThaiVowelUp + ThaiVowelUm, line)
-                cntvowelwrong += findoverlap(ThaiVowelUp + ThaiVowelUp, line)
-                cntvowelwrong += findoverlap(ThaiVowelUp + ThaiVowelDown, line)
-                cntvowelwrong += findoverlap(ThaiVowelUp + ThaiVowelTaiku, line)
-                                     
-                cntvowelwrong += findoverlap(ThaiVowelDown + ThaiVowelBack, line)
-                cntvowelwrong += findoverlap(ThaiVowelDown + ThaiVowelUm, line)
-                cntvowelwrong += findoverlap(ThaiVowelDown + ThaiVowelUp, line)
-                cntvowelwrong += findoverlap(ThaiVowelDown + ThaiVowelDown, line)
-                cntvowelwrong += findoverlap(ThaiVowelDown + ThaiVowelTaiku, line)
-                                     
-                cntvowelwrong += findoverlap(ThaiVowelTaiku + ThaiVowelBack, line)
-                cntvowelwrong += findoverlap(ThaiVowelTaiku + ThaiVowelUm, line)
-                cntvowelwrong += findoverlap(ThaiVowelTaiku + ThaiVowelUp, line)
-                cntvowelwrong += findoverlap(ThaiVowelTaiku + ThaiVowelDown, line)
-                cntvowelwrong += findoverlap(ThaiVowelTaiku + ThaiVowelTaiku, line)
-                cntvowelwrong += findoverlap(ThaiVowelTaiku + ThaiTantakad, line)
-                                     
-                cntvowelwrong += findoverlap(ThaiSound + ThaiVowelUp, line)
-                cntvowelwrong += findoverlap(ThaiSound + ThaiVowelDown, line)
-                cntvowelwrong += findoverlap(ThaiSound + ThaiVowelTaiku, line)
-                cntvowelwrong += findoverlap(ThaiSound + ThaiSound, line)
-                cntvowelwrong += findoverlap(ThaiSound + ThaiTantakad, line)
-                                     
-                cntvowelwrong += findoverlap(ThaiTantakad + ThaiVowelBack, line)
-                cntvowelwrong += findoverlap(ThaiTantakad + ThaiVowelUm, line)
-                cntvowelwrong += findoverlap(ThaiTantakad + ThaiVowelUp, line)
-                cntvowelwrong += findoverlap(ThaiTantakad + ThaiVowelDown, line)
-                cntvowelwrong += findoverlap(ThaiTantakad + ThaiVowelTaiku, line)
-                cntvowelwrong += findoverlap(ThaiTantakad + ThaiSound, line)
-                cntvowelwrong += findoverlap(ThaiTantakad + ThaiTantakad, line)
-                                     
-                cntvowelwrong += findoverlap(ThaiPaismall + ThaiVowelBack, line)
-                cntvowelwrong += findoverlap(ThaiPaismall + ThaiVowelUm, line)
-                cntvowelwrong += findoverlap(ThaiPaismall + ThaiVowelUp, line)
-                cntvowelwrong += findoverlap(ThaiPaismall + ThaiVowelDown, line)
-                cntvowelwrong += findoverlap(ThaiPaismall + ThaiVowelTaiku, line)
-                cntvowelwrong += findoverlap(ThaiPaismall + ThaiSound, line)
-                cntvowelwrong += findoverlap(ThaiPaismall + ThaiTantakad, line)
-                cntvowelwrong += findoverlap(ThaiPaismall + ThaiPaismall, line)
-                cntvowelwrong += findoverlap(ThaiPaismall + ThaiAgain, line)
-                                     
-                cntvowelwrong += findoverlap(ThaiAgain + ThaiVowelFront, line)
-                cntvowelwrong += findoverlap(ThaiAgain + ThaiVowelBack, line)
-                cntvowelwrong += findoverlap(ThaiAgain + ThaiVowelUm, line)
-                cntvowelwrong += findoverlap(ThaiAgain + ThaiVowelUp, line)
-                cntvowelwrong += findoverlap(ThaiAgain + ThaiVowelDown, line)
-                cntvowelwrong += findoverlap(ThaiAgain + ThaiVowelTaiku, line)
-                cntvowelwrong += findoverlap(ThaiAgain + ThaiSound, line)
-                cntvowelwrong += findoverlap(ThaiAgain + ThaiTantakad, line)
-                cntvowelwrong += findoverlap(ThaiAgain + ThaiPaismall, line)                
-                                     
-                cntvowelwrong += findoverlap(EngCharString + ThaiVowelBack, line)
-                cntvowelwrong += findoverlap(EngCharString + ThaiVowelUm, line)
-                cntvowelwrong += findoverlap(EngCharString + ThaiVowelUp, line)
-                cntvowelwrong += findoverlap(EngCharString + ThaiVowelDown, line)
-                cntvowelwrong += findoverlap(EngCharString + ThaiVowelTaiku, line)
-                cntvowelwrong += findoverlap(EngCharString + ThaiSound, line)
-                cntvowelwrong += findoverlap(EngCharString + ThaiTantakad, line)
-                cntvowelwrong += findoverlap(u"\w" + ThaiPaismall, line)
-                cntvowelwrong += findoverlap(u"\w" + ThaiAgain, line)
-                
-        if sizetag == 0: pywikibot.output(u"This user does not spam :)")
-        elif (sizetag * 10 >= sizecontent) and \
-            checkpagespam(page['title'], revision[1]['revid'], page['revisions'][0]['user']):
-            revert(page, u"สแปม", newpage)
-            continue
-        else:
-            pywikibot.output(u"Link found but it seems that he doesn't spam")
-        
-        print cntvowelwrong
-        if cntvowelwrong >= 13:
-            revert(page, u"ก่อกวน", newpage)
-            continue
-        else:
-            pywikibot.output(u"This is not vandalized edition")
+    gen = recentchanges(number = 20, namespace = "|".join([str(x) for x in xrange(16)]), repeat = True)
+    for revision in gen: check(revision)
         
     pywikibot.output(u"'spam script' terminated. (%s)" % libdate.getTime())
     pywikibot.stopme()
