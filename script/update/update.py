@@ -34,14 +34,24 @@ if __name__ == "__main__":
     for i in result:
         nday = 0 if i.group(1) == u'?' else int(i.group(1))
         nmonth = i.group(2)
-        ncon = i.group(3)
+        ncon = i.group(3).split(u',')
+        nins = []
+        for dat in ncon:
+            dat = dat.strip()
+            yeardat = re.search(u"\{\[\[(.*)\]\]\}", dat)
+            if yeardat is not None:
+                if int(yeardat.group(1)[len(u"พ.ศ. "):]) == year:
+                    yeardat = re.sub(u"\{\[\[.*\]\]\}", u"", dat).strip()
+                    nins.append(yeardat)
+            else:
+                nins.append(dat)
         
         for j in range(1, 12 + 1):
             if libdate.monthThaiAbbr(j) == nmonth:
                 nmonth = j
                 break
-        
-        saveall.append((nday, nmonth, ncon))
+            
+        if len(nins) != 0: saveall.append((nday, nmonth, u", ".join(nins)))
     
     for idx, (nday, nmonth, ncon) in enumerate(saveall):
         if(nmonth, nday) >= (today.month, today.day): break
@@ -50,6 +60,7 @@ if __name__ == "__main__":
 ==== วันสำคัญที่ผ่านมา ====
 """
     for i in range(idx - 3, idx):
+        state = i < 0
         wcontent += u"* [[%s %s]] : %s\n" % (u'?' if saveall[i][0] == 0 else str(saveall[i][0]), 
                                             libdate.monthThaiAbbr(saveall[i][1]), saveall[i][2])
     
@@ -57,6 +68,7 @@ if __name__ == "__main__":
     
     for i in range(idx, idx + 3):
         ip = i % len(saveall)
+        state = i >= len(saveall)
         wcontent += u"* [[%s %s]] : %s\n" % (u'?' if saveall[ip][0] == 0 else str(saveall[ip][0]), 
                                             libdate.monthThaiAbbr(saveall[ip][1]), saveall[ip][2])
     
