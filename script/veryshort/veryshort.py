@@ -8,8 +8,7 @@ except:
     print "Cannot import preload. Exit!"
     sys.exit()
 
-from lib import libdate
-from lib.miscellaneous import remove_wikicode
+from lib import libdate, libgenerator, miscellaneous
 import pagegenerators
 import wikipedia as pywikibot
 
@@ -21,13 +20,12 @@ if __name__ == "__main__":
     pywikibot.output(u"'veryshort-script' is invoked. (%s)" % libdate.getTime())
     site = pywikibot.getSite()
     
-    genfac = pagegenerators.GeneratorFactory()
-    generator = genfac.getCategoryGen(u':บทความที่มีเนื้อหาน้อยมาก', 0))
+    generator = libgenerator.CatGenerator(u'บทความที่มีเนื้อหาน้อยมาก')
     
     for page in generator:
         pywikibot.output(u"I am checking " + page.title())
         original_content = page.get()
-        content = remove_wikicode(original_content, space = True)
+        content = miscellaneous.remove_wikicode(original_content, space = True)
         
         if len(content) >= 1000:
             pywikibot.output(page.title())

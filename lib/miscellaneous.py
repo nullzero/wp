@@ -8,6 +8,7 @@ except:
     sys.exit()
 
 import wikipedia as pywikibot
+import query
 
 EXCLUDEQUOTE = True
 
@@ -264,3 +265,11 @@ def existPage(pageName):
     try: pywikibot.Page(site, pageName).get()
     except pywikibot.NoPage: return False
     return True
+
+sandboxPages = []
+sandboxPages.append(u"วิกิพีเดีย:สอนการใช้งาน_(จัดรูปแบบ)/กระดาษทด")
+sandboxPages.append(u"วิกิพีเดีย:สอนการใช้งาน_(แหล่งข้อมูลอื่น)/กระดาษทด")
+sandboxPages.append(u"วิกิพีเดีย:สอนการใช้งาน_(แก้ไข)/กระดาษทด")
+sandboxPages.append(u"วิกิพีเดีย:สอนการใช้งาน_(วิกิพีเดียลิงก์)/กระดาษทด")
+sandboxPages.append(u"วิกิพีเดีย:ทดลองเขียน")
+

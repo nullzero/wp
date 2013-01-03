@@ -1,8 +1,8 @@
 # -*- coding: utf-8  -*-
 
-import codecs, os, re, sys, datetime
+import codecs, os, re, sys, datetime, traceback
 
-DATACONFIG = os.path.join(os.path.abspath(os.path.dirname(__file__)), "../config/data.cfg")
+dataConfigPath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../config/data.cfg"))
 
 console_encoding = sys.stdout.encoding
 
@@ -87,64 +87,66 @@ usernames['%s']['%s'] = u'%s'
     print("'%s' written." % _fnc)
 
 def loadConfig():
-    with open(DATACONFIG, 'r') as fin: read_data = fin.readlines()
+    with open(dataConfigPath, 'r') as fin: read_data = fin.readlines()
     env = {}
     for line in read_data:
         key, value = line.strip().split(': ')
         
         if key == 'SYSOP': value = (value == 'y')
-        if key == 'BASEPATH': value = simplifypath(value)
+        if key == 'BASEPATH': value = simplifyPath(value)
         
         env[key] = value
     return env
     
-def putdata(key, prompt = None, checkFunc = lambda func: True, data = None, parser = lambda dat: dat):
+def putData(key, prompt = None, checkFunc = lambda func: True, data = None, parser = lambda dat: dat):
     if prompt is not None:
         while True:
             data = raw_input(prompt)
             if checkFunc(data): break
             print "Error!"
     
-    with open(DATACONFIG, 'a') as fout:
+    with open(dataConfigPath, 'a') as fout:
         fout.write(key + ": " + parser(data) + "\n")
 
-def simplifypath(path):
+def simplifyPath(path):
     return os.path.abspath(os.path.expanduser(path))
 
-# ---
+def error():
+    pywikibot.output(traceback.format_exc().decode("utf-8"))
 
-try: open(DATACONFIG, 'r').close()
+# ---
+try: open(dataConfigPath, 'r').close()
 except IOError:
-    # BASEPATH
-    putdata("BASEPATH",
-        "Enter Pywikibot path: ", 
-        lambda path: os.path.exists(simplifypath(os.path.join(path, "login.py"))),
-        parser = lambda path: simplifypath(path))
-    # USERNAME
-    putdata("USER", "Enter username: ")
-    # PASSWORD
-    putdata("PASS", "Enter password: ")
-    # SYSOP
-    putdata("SYSOP", "Are you a sysop (y/n): ", lambda ans: ans in "yn")
-    # TMP
-    putdata("TMP", data = "/tmp")
-    # WORKPATH
-    putdata("WORKPATH", data = simplifypath(os.path.join(os.path.dirname(__file__), "..")))
-    # ...
+    putData('PYWIKI',
+        "โปรดใส่ที่อยู่ของ pywikibot: ", 
+        lambda path: os.path.exists(simplifyPath(os.path.join(path, "login.py"))),
+        parser = lambda path: simplifyPath(path))
+    putData('USER', "โปรดใส่ชื่อผู้ใช้: ")
+    putData('PASS', "โปรดใส่รหัสผ่าน: ")
+    putData('SYSOP', "คุณเป็นผู้ดูแลระบบหรือเปล่า (y/n): ", lambda ans: ans in "yn")
+    putData('TMP', data = "/tmp")
+    putData('WORK', data = simplifyPath(os.path.join(os.path.dirname(__file__), "..")))
 
 env = loadConfig()
-sys.path.append(env['BASEPATH'])
+sys.path.append(env['PYWIKI'])
 
-if not os.path.exists(os.path.join(env['BASEPATH'], "user-config.py")):
-    create_user_config(env['BASEPATH'], env['USER'])
+if not os.path.exists(os.path.join(env['PYWIKI'], "user-config.py")):
     env = loadConfig()
 
 import wikipedia as pywikibot
 
 site = pywikibot.getSite()
+
 if not site.loggedInAs(sysop = env['SYSOP']):
-    pywikibot.output("I have not logged in yet!")
+    pywikibot.output("ยังไม่ได้ล็อกอินเลย!")
     import shlex, subprocess
-    args = shlex.split("python " + os.path.join(env['BASEPATH'], "login.py") + " -pass:" + env['PASS'])
-    process = subprocess.call(args)
-    pywikibot.output("Just logged in.")
+    process = subprocess.call(shlex.split("python " + os.path.join(env['PYWIKI'], "login.py") + \
+        " -pass:" + env['PASS']))
+    pywikibot.output("ล็อกอินแล้วนะ!")
+
+# ---
+
+summarySuffix = u" หากผิดพลาดโปรดแจ้ง[[คุยกับผู้ใช้:Nullzero|ที่นี่]]"
+
+def File(path, name):
+    return os.path.join(os.path.dirname(path), name)

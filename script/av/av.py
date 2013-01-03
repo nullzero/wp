@@ -1,143 +1,284 @@
 # -*- coding: utf-8 -*-
 
-import sys, re, string, os
+import sys, os, re, time, traceback
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 try: from lib import preload
 except:
-    print "Cannot import preload. Exit!"
+    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
 
-from lib import libdate    
-from lib.miscellaneous import remove_wikicode, skip_section, existPage
-from pagegenerators import NewpagesPageGenerator
-from userlib import User
+import query, userlib
+from lib import libdate, liblang, libstring, libgenerator, librevision, miscellaneous
 import wikipedia as pywikibot
 
-env = preload.env
+startChecking = 10
+site = preload.site
 
-NUMOFNEWPAGE = 20
-GOODMANFILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "av.fgoodman"))
-
-# predefine
-def getContent(page, generator):
-    try:
-        content = page.get()
-    except pywikibot.NoPage:
-        pywikibot.output(u"Page %s not found" % page.title())
-        return None
-    except pywikibot.IsRedirectPage:
-        newpage = page.getRedirectTarget()
-        pywikibot.output(u"Page %s redirects to '%s'"
-                         % (page.title(asLink=True), newpage.title()))
-        generator.append(newpage)
-        return None
-    except pywikibot.SectionError:
-        error("Page %s has no section %s"
-              % (page.title(), page.section()))
-        return None
-        
-    return content
-
-def readfile(filename):
-    with open(filename, 'r') as f:
-        content = f.read()
+def isSpam(pageName, revision, user):
+    contribs = librevision.allContribute(pageName)
+    cnt = 0
+    startOp = False
+    for i in contribs:
+        if startOp and user == i['user']: cnt += 1
+        if i['revid'] == revision: startOp = True
     
-    return content.splitlines()
+    pywikibot.output(u"เค้าคนนี้แก้หน้านี้มาแล้ว %s ครั้ง" % cnt)
+    return cnt < 3
 
-def MyNewpagesPageGenerator(number = 100, repeat = False, site = None, namespace = 0, user = None):
+revertedDict = {}
+
+import subprocess
+
+def notifyOSD(s):
+    try: subprocess.call(["notify-send", s.encode("utf-8")])
+    except: pass
+
+def revert(page, reason, newpage, template = None, makeWar = False):
+    summary = (u"ลบ" if newpage else u"ย้อน") + u"บทความ" + reason
+    pywikibot.output(page['title'] + u": " + summary)
+    notifyOSD(page['title'] + u": " + summary)
+    
+    if not makeWar:
+        if page['title'] in revertedDict:
+            if revertedDict[page['title']] == 0:
+                pywikibot.output(u"อย่ามีสงครามกันเลย!")
+                return
+            revertedDict[page['title']] += 1
+        else:
+            revertedDict[page['title']] = 0
+    
+    if newpage:
+        pageObject = pywikibot.Page(site, page['title'])
+        if int(page['ns']) % 2 == 1:
+            pageObject.put(u"{{อธิบายหน้าพูดคุย}}", summary + preload.summarySuffix, botflag = False)
+        else:
+            try: pageObject.put(u"{{ลบ|" + summary + "}}\n" + pageObject.get(), summary + preload.summarySuffix, botflag = False)
+            except: preload.error()
+        return
+    
+    librevision.revert(page['pageid'], page['revisions'][0]['revid'], summary, page['title'])
+
+const = {
+    'UNLIM' : -1,
+}
+
+NotEncyList = [
+    ([u"==\s*วิสัยทัศน์\s*==", u"==\s*พันธกิจ\s*=="], u"ไม่เป็นสารานุกรม (หัวข้อวิสัยทัศน์, พันธกิจ)", const['UNLIM']), 
+]
+
+try:
+    VandalBlacklist = []
+    UserBlacklist = []
+    
+    with open(preload.File(__file__, "VandalBlacklist.txt")) as f:
+        lines = f.read()
+        for line in lines:
+            dat = line.decode("utf-8").strip()
+            if dat != u"": VandalBlacklist.append(dat)
+        
+    with open(preload.File(__file__, "UserBlacklist.txt")) as f:
+        lines = f.read()
+        for line in lines:
+            dat = line.decode("utf-8").strip()
+            if dat != u"": UserBlacklist.append(dat)
+            
+except:
+    preload.error()
+
+def check(revision):
     """
-    Iterate Page objects for all new titles in a single namespace.
+    มาดูกันก่อนเลย ก่อกวนหรือไม่!
+    TODO: การกระทำทุกอย่างยกเว้น admin เสมอ
     """
-    # defaults to namespace 0 because that's how Special:Newpages defaults
-    site = pywikibot.getSite()
-    gen = site.recentchanges(number=number, rcshow=['!redirect'], rctype='new',
-                                     namespace=namespace, repeat=repeat,
-                                     user=user, returndict=True)
-                                     
-    for newpage, pageitem in gen:
-        yield (newpage, pageitem['user'])
-# end predefine
+    newpage = False
+    page = librevision.getRevision(revision[1]['revid'], 'diff')
+    pywikibot.output(u"กำลังตรวจสอบหน้า " + page['title'] + u" @ " + page['revisions'][0]['timestamp'])
+    
+    """
+    ยกเลิกการตรวจสอบ: ไฟล์ของผู้ใช้
+    TODO: หวังว่าคงไม่เจอสแปมในหน้านี้นะ
+    """
+    if page['title'].endswith(u".js") or page['title'].endswith(u".css"):
+        pywikibot.output("พบไฟล์ผู้ใช้! ยกเลิกการตรวจสอบ")
+        return
+    
+    """
+    ยกเลิกการตรวจสอบ: หน้าทดลองเขียน
+    TODO: หวังว่าคงไม่เจอสแปมในหน้านี้นะ
+    """
+    if (page['title'].startswith(u"ผู้ใช้:" + page['revisions'][0]['user']) and \
+        (re.search(u"(ทดลองเขียน|กระบะทราย|กระดาษทด)", page['title']) is not None)) \
+        or (re.sub("\ ", "_", page['title']) in miscellaneous.sandboxPages):
+        pywikibot.output(u"พบหน้าทดลอง! ยกเลิกการตรวจสอบ")
+        return
+            
+    if not page['revisions'][0]['diff']['from']:
+        pywikibot.output(u"หน้านี้เป็นหน้าใหม่!")
+        newpage = True
+        change = librevision.getRevision(revision[1]['revid'], 'content')
+    else:
+        change = page['revisions'][0]['diff']['*']
+    
+    """
+    ยกเลิกการตรวจสอบ: ผิดพลาด
+    """
+    try:
+        curpage = pywikibot.Page(site, page['title'])
+        content = curpage.get()
+    except:
+        pywikibot.output(u"ผิดพลาด: ไม่สามารถเรียกข้อมูลหน้าได้ ยกเลิกการตรวจสอบ")
+        pywikibot.output(traceback.format_exc().decode("utf-8"))
+        return
+    
+    """
+    ยกเลิกการตรวจสอบ: มีป้ายแล้ว
+    """
+    if re.search(u"\{\{(ลบ|Delete|Sd|ละเมิดลิขสิทธิ์|Copyvio).*?\}\}", content, re.IGNORECASE | re.DOTALL):
+        pywikibot.output(u"มีป้ายติดอยู่แล้ว! ยกเลิกการตรวจสอบ")
+        return
+    
+    user = userlib.User(site, page['revisions'][0]['user'])
+    autoconfirmed = user.isRegistered() and ('autoconfirmed' in user.groups())
+    
+    """
+    ก่อกวนหรือไม่เป็นสารานุกรม เพราะ ความยาวสั้นจัด ยกเว้น
+    1. autoconfirmed และ ns:talk เพราะอาจจะเจอกรณีเคลีย ns:talk หรือติดป้ายให้ ns:talk
+    2. autoconfirmed และ ไม่ใช่ ns:main เพราะอาจจะเจอพวก {{ดูเพิ่ม}} ใน ns:cat หรือ ns:template ที่สั้นจัด
+    3. ไม่ต้องสน redirect เพราะไม่มีรายชื่อนี้อยู่แล้ว
+    """
+    if len(content) < 72:
+        if not (autoconfirmed and (page['ns'] % 2 == 1 or page['ns'] != 0)):
+            revert(page, u"ก่อกวนหรือไม่เป็นสารานุกรม", newpage, makeWar = True)
+    
+    """
+    ภาษาต่างประเทศ!
+    1. วางใจ autoconfirmed
+    2. ตรวจเฉพาะ ns:talk ทั้งหลาย กับ ns:main
+    """
+    cntThaiChar, cntForeignChar = liblang.analyzeChar(re.sub("\[\[[\w-]+:.*?\]\]\n", "", content))
+    
+    if not autoconfirmed and page['ns'] != 3 and (page['ns'] == 0 or page['ns'] % 2 == 1):
+        if cntThaiChar * 20 <= cntForeignChar or cntThaiChar <= 10:
+            revert(page, u"ภาษาต่างประเทศ", newpage)
+            return
+    
+    lines = change.splitlines()
 
-def reqDelete(page, reason, original_content):
-    page.put(u"{{ลบ|" + reason + u"}}\n" + original_content, 
-            u"บอตแจ้ง" + reason + u" หากเกิดข้อผิดพลาด โปรดแจ้ง[[คุยกับผู้ใช้:Nullzero|ที่นี่]]")
-
-pat_skip = re.compile(u"\{\{(\ )*(ลบ|delete|สั้นมาก|ละเมิดลิขสิทธิ์).*?\}\}", re.DOTALL | re.IGNORECASE)
+    cntWrongVowel = 0
+    cntAddedLink = 0
+    cntDeletedLink = 0
+    addedLink = u""
+    addedLine = u""
+    deletedLine = u""
+    
+    for line in lines:
+        line = line.strip()
+        if line.startswith(u'<td class="diff-deletedline">'):
+            line = re.sub(u"<td.*?>", u"", line)
+            line = re.sub(u"</td>", u"", line)
+            line = re.sub(u"<div>", u"", line)
+            line = re.sub(u"</div>", u"", line)
+            line = re.sub(u"<span.*?>", u"", line)
+            line = re.sub(u"</span>", u"", line)
+            line = re.sub(u"&lt;", u"<", line)
+            line = re.sub(u"&gt;", u">", line)
+            
+            cntDeletedLink += libstring.findOverlap(u"http://", line)
+            cntDeletedLink -= libstring.findOverlap(u"<ref>", line)
+            deletedLine += line + u'\n'
+            
+        elif line.startswith(u'<td class="diff-addedline">') or newpage:
+            if not newpage:
+                line = re.sub(u"<td.*?>", u"", line)
+                line = re.sub(u"</td>", u"", line)
+                line = re.sub(u"<div>", u"", line)
+                line = re.sub(u"</div>", u"", line)
+                line = re.sub(u"<span.*?>", u"", line)
+                line = re.sub(u"</span>", u"", line)
+                line = re.sub(u"&lt;", u"<", line)
+                line = re.sub(u"&gt;", u">", line)
+            
+            addedLine += line + u'\n'
+            cntWrongVowel += liblang.cntWrongVowel(line)
+            cntAddedLink += libstring.findOverlap(u"http://", line)
+            cntAddedLink -= libstring.findOverlap(u"<ref>", line)
+            alllink = re.findall(u"http://\w+", line)
+            for i in alllink: addedLink += i
+    
+    """
+    ก่อกวน: เพิ่มคำใน blacklist
+    1. ยกเว้น autoconfirmed
+    """
+    if not autoconfirmed:
+        for i in VandalBlacklist:
+            if re.search(i, addedLine) is not None:
+                revert(page, u"ก่อกวน", newpage)
+                return
+    
+    """
+    ไม่เป็นสารานุกรม
+    1. ตรวจหมด รวม autoconfirmed ด้วย
+    """
+    for subject in NotEncyList:
+        lim = len(subject[0]) if subject[2] == const['UNLIM'] else subject[2]
+        cnt = 0
+        for x in subject[0]:
+            if re.search(x, addedLine) is not None:
+                cnt += 1
+        
+        if cnt == lim:
+            revert(page, subject[1], newpage, makeWar = True)
+            return
+    
+    """
+    สแปม
+    1. ไม่ตรวจ autoconfirmed ซึ่งอาจจะแทรกลิงก์เจตนาดี
+    """
+    if not autoconfirmed and (len(addedLink) * 5 >= len(addedLine)) and cntAddedLink > cntDeletedLink and \
+        isSpam(page['title'], revision[1]['revid'], page['revisions'][0]['user']):
+        revert(page, u"สแปม", newpage)
+        return
+    
+    """
+    ก่อกวน: สระซ้อนเยอะเกิน
+    """
+    if cntWrongVowel >= 13:
+        revert(page, u"ก่อกวน", newpage)
+        return
+    
+    """
+    ลบข้อมูลออก
+    1. วางใจ autoconfirmed
+    2. ไม่สนใจการกระทำในหน้าของตัวเอง
+    3. เกิน 1000 อักขระ
+    """
+    if not autoconfirmed and (not page['title'].startswith(u"ผู้ใช้:" + page['revisions'][0]['user'])) and \
+        len(deletedLine) - len(addedLine) >= 1000:
+        revert(page, u"ถูกลบข้อมูลออก", False)
+        return
+    
+    """
+    ก่อกวน
+    """
+    if liblang.checkRepetition(addedLine.encode("utf-8")) >= 32:
+        revert(page, u"ก่อกวน", False, makeWar = True)
+        return
+        
+    """
+    เอาละ บทความนี้เป็นบทความที่ผ่านเกณฑ์ละ! มาเก็บกวาดกัน
+    """
+    liblang.fixRepetedVowel(curpage)
 
 if __name__ == "__main__":
-    pywikibot.handleArgs(u"-log")
-    pywikibot.output(u"'av-script' is invoked. (%s)" % libdate.getTime())
-    site = pywikibot.getSite()
-    generator = MyNewpagesPageGenerator(number = NUMOFNEWPAGE)
+    pywikibot.handleArgs("-log")
+    pywikibot.output(u"สคริปต์ย้อนก่อกวนเริ่มทำงาน ณ เวลา %s" % libdate.getTime())
     
-    goodManList = readfile(GOODMANFILE)
+    gen = libgenerator.recentchanges(number = startChecking, namespace = "|".join([str(x) for x in xrange(16)]), repeat = True)
     
-    for page, username in generator:
-        pywikibot.output(u"I am checking " + page.title() + u" by user " + username)
-            
-        if username.encode("utf8") in goodManList:
-            pywikibot.output(u"Skip! Good man writes it.")
-            continue
-        
-        # {{done}}
-        userobject = User(site, username)
-        if userobject.isRegistered() and 'sysop' in userobject.groups():
-            pywikibot.output(u"Skip! Admin writes it.")
-            continue
-        
-        # {{done}}
-        original_content = getContent(page, generator)
-        if original_content is None:
-            pywikibot.output(u"Skip! There is an error")
-            continue
-            
-        # {{done}}
-        if pat_skip.search(original_content) is not None:
-            pywikibot.output(u"Skip! This is a legal article")
-            continue
-            
-        # {{done}}
-        if len(original_content) < 200:
-            pywikibot.output(u"Vandal! too few length of content")
-            reqDelete(page, u"ไม่เป็นสารานุกรม", original_content)
-            continue
-        
-        content = remove_wikicode(skip_section(original_content))
-        
-        # {{done}}
-        if abs(len(content) - len(original_content)) < 32:
-            pywikibot.output(u"Vandal! too few length of markup")
-            reqDelete(page, u"ไม่เป็นสารานุกรม", original_content)
-            continue
-        
-        clist = content.splitlines()
-        content = u""
-        for i in clist: content += i
-        
-        """
-        pat_resume = re.compile(u".*เกิด.*วันที่.*(จบ|เรียน|ศึกษา).*")
-        
-        if pat_resume.match(content) is not None:
-            pywikibot.output(u"Resume")
-            reqDelete(page, u"ประวัติส่วนตัวไม่โดดเด่น", original_content)
-        """
-        
-        # {{done}}
-        if original_content[0] == u" " and original_content[1] == u" ":
-            pywikibot.output(u"Violate copyright policy!")
-            reqDelete(page, u"ไม่เป็นสาราฯ/ละเมิดลิขสิทธิ์", original_content)
-            
-    prefix = u"พูดคุย:"
-    generator = MyNewpagesPageGenerator(number = NUMOFNEWPAGE, namespace = 1)
-    for page, username in generator:
-        pywikibot.output(u"I am checking " + page.title()[len(prefix):] + u" by user " + username)
-        if existPage(page.title()[len(prefix):]):
-            pywikibot.output(u"Nothing to do!")
-        else:
-            if not pat_skip.search(original_content) is not None:
-                pywikibot.output(u"this page does not link with exist page.")
-                reqDelete(page, u"หน้าที่ขึ้นอยู่กับหน้าว่าง", u"")
-    
-    pywikibot.output(u"'av-script' terminated. (%s)" % libdate.getTime())
-    pywikibot.stopme()
+    try:
+        for revision in gen: check(revision)
+    except:
+        pywikibot.output(u"สคริปต์ย้อนก่อกวนหยุดทำงาน ณ เวลา %s" % libdate.getTime())
+        preload.error()
+        pywikibot.stopme()

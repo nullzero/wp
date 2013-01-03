@@ -79,7 +79,7 @@ if __name__ == "__main__":
         pywikibot.output(u"Nothing to do!")
     else:
         pywikibot.output(u"Write new event")
-        page.put(wcontent, u"อัปเดตรายชื่อวันสำคัญโดยบอต")
+        page.put(wcontent, u"อัปเดตรายชื่อวันสำคัญโดยบอต", force = True)
         
     pywikibot.output(u"'update script' terminated. (%s)" % libdate.getTime())
     pywikibot.stopme()

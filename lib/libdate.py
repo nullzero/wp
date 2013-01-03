@@ -1,10 +1,10 @@
 # -*- coding: utf-8  -*-
 
-import datetime
+import datetime, sys
 
 try: import preload
 except:
-    print "Cannot import preload. Exit!"
+    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
 
 def getTime(): return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
