@@ -51,9 +51,10 @@ def revert(page, reason, newpage, template = None, makeWar = False):
     if newpage:
         pageObject = pywikibot.Page(site, page['title'])
         if int(page['ns']) % 2 == 1:
-            pageObject.put(u"{{อธิบายหน้าพูดคุย}}", summary + preload.summarySuffix, botflag = False)
+            try: pageObject.put(u"{{อธิบายหน้าพูดคุย}}", summary + preload.summarySuffix, botflag = False, force = True)
+            except: preload.error()
         else:
-            try: pageObject.put(u"{{ลบ|" + summary + "}}\n" + pageObject.get(), summary + preload.summarySuffix, botflag = False)
+            try: pageObject.put(u"{{ลบ|" + summary + "}}\n" + pageObject.get(), summary + preload.summarySuffix, botflag = False, force = True)
             except: preload.error()
         return
     
@@ -64,7 +65,7 @@ const = {
 }
 
 NotEncyList = [
-    ([u"==\s*วิสัยทัศน์\s*==", u"==\s*พันธกิจ\s*=="], u"ไม่เป็นสารานุกรม (หัวข้อวิสัยทัศน์, พันธกิจ)", const['UNLIM']), 
+    ([u"==\s*วิสัยทัศน์\s*==", u"==\s*พันธกิจ\s*=="], u"วิสัยทัศน์ฯ ไม่เป็นสาราฯ", const['UNLIM']), 
 ]
 
 try:
@@ -86,14 +87,37 @@ try:
 except:
     preload.error()
 
+def clean(page):
+    if page is None: return
+    liblang.fixRepetedVowel(page)
+
 def check(revision):
     """
     มาดูกันก่อนเลย ก่อกวนหรือไม่!
-    TODO: การกระทำทุกอย่างยกเว้น admin เสมอ
     """
     newpage = False
     page = librevision.getRevision(revision[1]['revid'], 'diff')
     pywikibot.output(u"กำลังตรวจสอบหน้า " + page['title'] + u" @ " + page['revisions'][0]['timestamp'])
+    
+    """
+    ยกเลิกการตรวจสอบ: ผิดพลาด
+    """
+    try:
+        curpage = pywikibot.Page(site, page['title'])
+        content = curpage.get()
+    except:
+        pywikibot.output(u"ผิดพลาด: ไม่สามารถเรียกข้อมูลหน้าได้ ยกเลิกการตรวจสอบ")
+        pywikibot.output(traceback.format_exc().decode("utf-8"))
+        return
+        
+    """
+    ยกเว้นทุกอย่างให้ sysop
+    """
+    user = userlib.User(site, page['revisions'][0]['user'])
+    if user.isRegistered() and ('sysop' in user.groups()):
+        return curpage
+        
+    autoconfirmed = user.isRegistered() and ('autoconfirmed' in user.groups())
     
     """
     ยกเลิกการตรวจสอบ: ไฟล์ของผู้ใช้
@@ -121,35 +145,22 @@ def check(revision):
         change = page['revisions'][0]['diff']['*']
     
     """
-    ยกเลิกการตรวจสอบ: ผิดพลาด
-    """
-    try:
-        curpage = pywikibot.Page(site, page['title'])
-        content = curpage.get()
-    except:
-        pywikibot.output(u"ผิดพลาด: ไม่สามารถเรียกข้อมูลหน้าได้ ยกเลิกการตรวจสอบ")
-        pywikibot.output(traceback.format_exc().decode("utf-8"))
-        return
-    
-    """
     ยกเลิกการตรวจสอบ: มีป้ายแล้ว
     """
     if re.search(u"\{\{(ลบ|Delete|Sd|ละเมิดลิขสิทธิ์|Copyvio).*?\}\}", content, re.IGNORECASE | re.DOTALL):
         pywikibot.output(u"มีป้ายติดอยู่แล้ว! ยกเลิกการตรวจสอบ")
         return
     
-    user = userlib.User(site, page['revisions'][0]['user'])
-    autoconfirmed = user.isRegistered() and ('autoconfirmed' in user.groups())
-    
     """
-    ก่อกวนหรือไม่เป็นสารานุกรม เพราะ ความยาวสั้นจัด ยกเว้น
-    1. autoconfirmed และ ns:talk เพราะอาจจะเจอกรณีเคลีย ns:talk หรือติดป้ายให้ ns:talk
-    2. autoconfirmed และ ไม่ใช่ ns:main เพราะอาจจะเจอพวก {{ดูเพิ่ม}} ใน ns:cat หรือ ns:template ที่สั้นจัด
-    3. ไม่ต้องสน redirect เพราะไม่มีรายชื่อนี้อยู่แล้ว
+    ก่อกวนหรือไม่เป็นสารานุกรม เพราะ ความยาวสั้นจัด
+    1. ยกเว้น autoconfirmed
+    2. ไม่ใช่ ns:main เพราะอาจจะเจอพวก {{ดูเพิ่ม}} ใน ns:cat หรือ ns:template ที่สั้นจัด
+    3. ตรวจหน้าพูดคุย เพราะมักเจอก่อกวนบ่อยจาก not autoconfirmed
     """
-    if len(content) < 72:
-        if not (autoconfirmed and (page['ns'] % 2 == 1 or page['ns'] != 0)):
-            revert(page, u"ก่อกวนหรือไม่เป็นสารานุกรม", newpage, makeWar = True)
+    if len(content) < 72 and not autoconfirmed:
+        if page['ns'] % 2 == 1 or page['ns'] == 0:
+            revert(page, u"ก่อกวน/ไม่เป็นสารานุกรม", newpage, makeWar = (page['ns'] == 0))
+            return
     
     """
     ภาษาต่างประเทศ!
@@ -261,24 +272,25 @@ def check(revision):
     """
     ก่อกวน
     """
-    if liblang.checkRepetition(addedLine.encode("utf-8")) >= 32:
+    if len(addedLine) > 0 and liblang.checkRepetition(addedLine.encode("utf-8")) >= 32:
         revert(page, u"ก่อกวน", False, makeWar = True)
         return
-        
-    """
-    เอาละ บทความนี้เป็นบทความที่ผ่านเกณฑ์ละ! มาเก็บกวาดกัน
-    """
-    liblang.fixRepetedVowel(curpage)
+    
+    return curpage
 
 if __name__ == "__main__":
     pywikibot.handleArgs("-log")
     pywikibot.output(u"สคริปต์ย้อนก่อกวนเริ่มทำงาน ณ เวลา %s" % libdate.getTime())
     
-    gen = libgenerator.recentchanges(number = startChecking, namespace = "|".join([str(x) for x in xrange(16)]), repeat = True)
+    if len(sys.argv) > 1:
+        gen = [int(sys.argv)]
+    else:
+        gen = libgenerator.recentchanges(number = startChecking, namespace = "|".join([str(x) for x in xrange(16)]), repeat = True)
     
     try:
-        for revision in gen: check(revision)
+        for revision in gen: clean(check(revision))
     except:
-        pywikibot.output(u"สคริปต์ย้อนก่อกวนหยุดทำงาน ณ เวลา %s" % libdate.getTime())
         preload.error()
-        pywikibot.stopme()
+    
+    pywikibot.output(u"สคริปต์ย้อนก่อกวนหยุดทำงาน ณ เวลา %s" % libdate.getTime())
+    pywikibot.stopme()

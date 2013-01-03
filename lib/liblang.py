@@ -148,7 +148,8 @@ def fixRepetedVowel(page):
     
     if content != ocontent:
         pywikibot.output("แก้สระซ้อนค้าบ")
-        page.put(content, u"โรบอต: แก้สระซ้อน")
+        try: page.put(content, u"โรบอต: แก้สระซ้อน", force = True)
+        except: preload.error()
     
     opagetitle = page.title()
     pagetitle = opagetitle
@@ -157,8 +158,10 @@ def fixRepetedVowel(page):
     
     if pagetitle != opagetitle:
         pywikibot.output("ย้ายบทความชื่อมีสระซ้อน")
-        movepages.MovePagesBot(None, None, True, False, True, u"โรบอต: เปลี่ยนชื่อบทความมีสระซ้อน").moveOne(page, pagetitle)
-        pywikibot.Page(pywikibot.getSite(), opagetitle).put(u"{{ลบ|ชื่อมีสระซ้อน ย้ายหน้าไป[[%s]]แล้ว}}" % pagetitle, u"โรบอต: แจ้งลบชื่อมีสระซ้อน")
+        try: 
+            movepages.MovePagesBot(None, None, True, False, True, u"โรบอต: เปลี่ยนชื่อบทความมีสระซ้อน").moveOne(page, pagetitle)
+            pywikibot.Page(pywikibot.getSite(), opagetitle).put(u"{{ลบ|ชื่อมีสระซ้อน ย้ายหน้าไป[[%s]]แล้ว}}" % pagetitle, u"โรบอต: แจ้งลบชื่อมีสระซ้อน", force = True)
+        except: preload.error()
 
 import random
 from subprocess import Popen, PIPE, STDOUT

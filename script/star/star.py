@@ -121,10 +121,13 @@ def dochange(pagename):
 if __name__ == "__main__":
     pywikibot.handleArgs(u"-log")
     pywikibot.output(u"'star-script' is invoked. (%s)" % libdate.getTime())
-    with open(QUEUE, "r") as f: content = f.read()
-    with open(QUEUE, "w") as f: pass
-    lines = content.splitlines()
-    #lines = ["รัฐภูมิ_โตคงทรัพย์"]
+    
+    if len(sys.argv) > 1:
+        lines = sys.argv[1:]
+    else:
+        with open(QUEUE, "r") as f: content = f.read()
+        with open(QUEUE, "w") as f: pass
+        lines = content.splitlines()
     
     for i in lines:
         pywikibot.output(i)
