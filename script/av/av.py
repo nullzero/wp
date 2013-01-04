@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import sys, os, re, time, traceback
+import sys, os, re, time, traceback, urllib
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 try: from lib import preload
@@ -24,7 +24,7 @@ def isSpam(pageName, revision, user):
         if i['revid'] == revision: startOp = True
     
     pywikibot.output(u"เค้าคนนี้แก้หน้านี้มาแล้ว %s ครั้ง" % cnt)
-    return cnt < 3
+    return cnt == 0
 
 revertedDict = {}
 
@@ -34,31 +34,41 @@ def notifyOSD(s):
     try: subprocess.call(["notify-send", s.encode("utf-8")])
     except: pass
 
+def delete(page, reason):
+    pywikibot.output(u"ลบ: " + page['title'] + u": " + reason)
+    notifyOSD(u"ลบ: " + page['title'] + u": " + reason)
+    summary = reason
+    pageObject = pywikibot.Page(site, page['title'])
+    try:
+        if int(page['ns']) % 2 == 1:
+            pageObject.put(u"{{อธิบายหน้าพูดคุย}}", summary + preload.summarySuffix, botflag = False, force = True)
+        else:
+            pageObject.put(u"{{ลบ|" + summary + "}}\n" + pageObject.get(), summary + preload.summarySuffix, botflag = False, force = True)
+    except: preload.error()
+
 def revert(page, reason, newpage, template = None, makeWar = False):
-    summary = (u"ลบ" if newpage else u"ย้อน") + u"บทความ" + reason
-    pywikibot.output(page['title'] + u": " + summary)
-    notifyOSD(page['title'] + u": " + summary)
+    pywikibot.output(u"ย้อน/ลบ: " + page['title'] + u": " + reason)
+    notifyOSD(u"ย้อน/ลบ: " + page['title'] + u": " + reason)
     
     if not makeWar:
         if page['title'] in revertedDict:
-            if revertedDict[page['title']] == 0:
+            if revertedDict[page['title']] > 0:
                 pywikibot.output(u"อย่ามีสงครามกันเลย!")
                 return
             revertedDict[page['title']] += 1
         else:
             revertedDict[page['title']] = 0
     
+    summary = (u"ลบ" if newpage else u"ย้อน") + u"บทความ" + reason
+    
     if newpage:
-        pageObject = pywikibot.Page(site, page['title'])
-        if int(page['ns']) % 2 == 1:
-            try: pageObject.put(u"{{อธิบายหน้าพูดคุย}}", summary + preload.summarySuffix, botflag = False, force = True)
-            except: preload.error()
-        else:
-            try: pageObject.put(u"{{ลบ|" + summary + "}}\n" + pageObject.get(), summary + preload.summarySuffix, botflag = False, force = True)
-            except: preload.error()
+        delete(page, summary)
         return
     
-    librevision.revert(page['pageid'], page['revisions'][0]['revid'], summary, page['title'])
+    librevision.revert(page['pageid'], 
+        page['revisions'][0]['revid'], 
+        summary + preload.summarySuffix, 
+        page['title'])
 
 const = {
     'UNLIM' : -1,
@@ -66,30 +76,49 @@ const = {
 
 NotEncyList = [
     ([u"==\s*วิสัยทัศน์\s*==", u"==\s*พันธกิจ\s*=="], u"วิสัยทัศน์ฯ ไม่เป็นสาราฯ", const['UNLIM']), 
+    ([u"สัญญลักษณ์"], u"วุ้นแปลภาษา", const['UNLIM']),
+    ([u"!!\s*((แสดง)?คู่(กับ)?|นักแสดงร่วม)", u"!!\s*ออกอากาศ"], u"ลบตาม[[วิกิพีเดีย:โครงการวิกิภาพยนตร์/รูปแบบการเขียน/บทความนักแสดง]]", 1),
 ]
+
+def readFileBWList(vector, filename):
+    with open(preload.File(__file__, filename)) as f:
+        lines = f.read()
+        for line in lines:
+            dat = line.decode("utf-8").strip()
+            if dat != u"": vector.append(dat)
 
 try:
     VandalBlacklist = []
     UserBlacklist = []
+    UserWhitelist = []
     
-    with open(preload.File(__file__, "VandalBlacklist.txt")) as f:
-        lines = f.read()
-        for line in lines:
-            dat = line.decode("utf-8").strip()
-            if dat != u"": VandalBlacklist.append(dat)
-        
-    with open(preload.File(__file__, "UserBlacklist.txt")) as f:
-        lines = f.read()
-        for line in lines:
-            dat = line.decode("utf-8").strip()
-            if dat != u"": UserBlacklist.append(dat)
-            
+    readFileBWList(VandalBlacklist, "VandalBlacklist.txt")
+    readFileBWList(UserBlacklist, "UserBlacklist.txt")
+    readFileBWList(UserWhitelist, "UserWhitelist.txt")
+    
 except:
     preload.error()
 
+def decoder(url):
+    url = url.group(1)
+    url = re.sub(u"%[0-7]\w", lambda x: u"_place_holder_(%s)" % x.group(), url)
+    url = urllib.unquote(url.encode("utf-8")).decode("utf-8")
+    url = re.sub(u"_place_holder_\((.*?)\)", lambda x: urllib.quote(x.group(1)), url)
+    return url
+
 def clean(page):
     if page is None: return
-    liblang.fixRepetedVowel(page)
+    pywikibot.output(u"ผ่านครับ! เริ่มเก็บกวาดกัน")
+    ocontent = page.get()
+    content = ocontent
+    content = liblang.fixRepetedVowel(content)
+    try:
+        content = re.sub(u"(https?://.*?)(?=(<\s*/\s*ref\s*>|\s|$))", decoder, content, re.DOTALL)
+    except:
+        pass
+    
+    if content != ocontent: page.put(content, u"โรบอต: เก็บกวาด", force = True)
+    liblang.fixRepetedVowelTitle(page)
 
 def check(revision):
     """
@@ -111,10 +140,12 @@ def check(revision):
         return
         
     """
-    ยกเว้นทุกอย่างให้ sysop
+    ยกเว้นทุกอย่างให้ sysop และ whitelist
     """
     user = userlib.User(site, page['revisions'][0]['user'])
-    if user.isRegistered() and ('sysop' in user.groups()):
+    
+    if user.isRegistered() and (('sysop' in user.groups()) or (page['revisions'][0]['user'] in UserWhitelist)):
+        pywikibot.output(u"คนดีเขียนครับ!")
         return curpage
         
     autoconfirmed = user.isRegistered() and ('autoconfirmed' in user.groups())
@@ -135,7 +166,7 @@ def check(revision):
         (re.search(u"(ทดลองเขียน|กระบะทราย|กระดาษทด)", page['title']) is not None)) \
         or (re.sub("\ ", "_", page['title']) in miscellaneous.sandboxPages):
         pywikibot.output(u"พบหน้าทดลอง! ยกเลิกการตรวจสอบ")
-        return
+        return curpage
             
     if not page['revisions'][0]['diff']['from']:
         pywikibot.output(u"หน้านี้เป็นหน้าใหม่!")
@@ -161,6 +192,13 @@ def check(revision):
         if page['ns'] % 2 == 1 or page['ns'] == 0:
             revert(page, u"ก่อกวน/ไม่เป็นสารานุกรม", newpage, makeWar = (page['ns'] == 0))
             return
+    
+    """
+    หน้าที่ขึ้นกับหน้าว่าง
+    """
+    if page['ns'] % 2 == 1 and page['ns'] != 3:
+        if not miscellaneous.existPage(re.sub(".*?:", u"", page['title'])):
+            delete(page, u"หน้าที่ขึ้นกับหน้าว่าง")
     
     """
     ภาษาต่างประเทศ!
@@ -197,7 +235,7 @@ def check(revision):
             
             cntDeletedLink += libstring.findOverlap(u"http://", line)
             cntDeletedLink -= libstring.findOverlap(u"<ref>", line)
-            deletedLine += line + u'\n'
+            deletedLine += line + u"\n"
             
         elif line.startswith(u'<td class="diff-addedline">') or newpage:
             if not newpage:
@@ -210,7 +248,7 @@ def check(revision):
                 line = re.sub(u"&lt;", u"<", line)
                 line = re.sub(u"&gt;", u">", line)
             
-            addedLine += line + u'\n'
+            addedLine += line + u"\n"
             cntWrongVowel += liblang.cntWrongVowel(line)
             cntAddedLink += libstring.findOverlap(u"http://", line)
             cntAddedLink -= libstring.findOverlap(u"<ref>", line)
@@ -263,14 +301,15 @@ def check(revision):
     1. วางใจ autoconfirmed
     2. ไม่สนใจการกระทำในหน้าของตัวเอง
     3. เกิน 1000 อักขระ
+    4. เพิ่มข้อมูลต่ำกว่า 32 เท่าของข้อมูลที่ลบ
     """
     if not autoconfirmed and (not page['title'].startswith(u"ผู้ใช้:" + page['revisions'][0]['user'])) and \
-        len(deletedLine) - len(addedLine) >= 1000:
+        len(deletedLine) >= 32 * len(addedLine) and len(deletedLine) >= 1000:
         revert(page, u"ถูกลบข้อมูลออก", False)
         return
     
     """
-    ก่อกวน
+    ก่อกวนโดยการใส่ข้อมูลซ้ำ ๆ กัน
     """
     if len(addedLine) > 0 and liblang.checkRepetition(addedLine.encode("utf-8")) >= 32:
         revert(page, u"ก่อกวน", False, makeWar = True)
@@ -294,3 +333,4 @@ if __name__ == "__main__":
     
     pywikibot.output(u"สคริปต์ย้อนก่อกวนหยุดทำงาน ณ เวลา %s" % libdate.getTime())
     pywikibot.stopme()
+    

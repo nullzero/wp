@@ -138,23 +138,13 @@ def cntWrongVowel(line):
     
     return cnt
 
-def fixRepetedVowel(page):
-    ocontent = page.get()
-    content = ocontent
-    check = u"แโใไะาๅำัิีึืํฺุู็่้๊๋์ฯ"
-    
-    for i in check:
-        content = re.sub(i + u"+", i, content)
-    
-    if content != ocontent:
-        pywikibot.output("แก้สระซ้อนค้าบ")
-        try: page.put(content, u"โรบอต: แก้สระซ้อน", force = True)
-        except: preload.error()
-    
+checkVowel = u"แโใไะาๅำัิีึืํฺุู็่้๊๋์ฯ"
+
+def fixRepetedVowelTitle(page):
     opagetitle = page.title()
     pagetitle = opagetitle
     
-    for i in check: pagetitle = re.sub(i + u"+", i, pagetitle)
+    for i in checkVowel: pagetitle = re.sub(i + u"+", i, pagetitle)
     
     if pagetitle != opagetitle:
         pywikibot.output("ย้ายบทความชื่อมีสระซ้อน")
@@ -162,6 +152,10 @@ def fixRepetedVowel(page):
             movepages.MovePagesBot(None, None, True, False, True, u"โรบอต: เปลี่ยนชื่อบทความมีสระซ้อน").moveOne(page, pagetitle)
             pywikibot.Page(pywikibot.getSite(), opagetitle).put(u"{{ลบ|ชื่อมีสระซ้อน ย้ายหน้าไป[[%s]]แล้ว}}" % pagetitle, u"โรบอต: แจ้งลบชื่อมีสระซ้อน", force = True)
         except: preload.error()
+    
+def fixRepetedVowel(content):
+    for i in checkVowel: content = re.sub(i + u"+", i, content)
+    return content
 
 import random
 from subprocess import Popen, PIPE, STDOUT
