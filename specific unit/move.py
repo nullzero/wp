@@ -18,9 +18,23 @@ movebot = movepages.MovePagesBot(None, None, True, False, True, u"โรบอ�
 gen = pagegenerators.TextfilePageGenerator("movepagelist (wikibooks)")
 cntpage = 0
 ask = True
+site = pywikibot.getSite()
 
 for page in gen:
-    movebot.moveOne(page, u"OpenOffice/" + page.title())
+    another = pywikibot.Page(site, u"OpenOffice/" + page.title())
+    try:
+        another.get()
+        page.get()
+    except pywikibot.NoPage:
+        movebot.moveOne(page, u"OpenOffice/" + page.title())
+        try:
+            page.get()
+            page.put(u"{{ลบ|ย้ายไป /OpenOffice}}", u"ย้ายไป /OpenOffice", force = True)
+        except:
+            pass
+    except pywikibot.IsRedirectPage:
+        page.put(u"{{ลบ|ย้ายไป /OpenOffice}}", u"ย้ายไป /OpenOffice", force = True)
+        
     cntpage += 1
     if cntpage % 10 == 0 and ask:
         s = raw_input("Continue?")

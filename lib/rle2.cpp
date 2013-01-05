@@ -3,17 +3,33 @@ TASK: oct27_rle2
 LANG: C++
 */
 
-#include <cstdio>
-#include <cstring>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
 
 const int N(701);
 
-char str[N];
+struct Unicode{
+    string ch;
+    
+    bool operator==(const Unicode& o)const{
+        return ch == o.ch;
+    }
+    
+    Unicode(string _ch){
+        ch = _ch;
+    }
+};
+
+vector<Unicode> str;
+
 int A[N][N], O[N][N];
 bool sp[N][N], sm[N][N];
-int len;
 
-bool match(int a, int b, int c){
+inline bool match(int a, int b, int c){
     while(a <= b){
         if(str[a] == str[c]){
             a++;
@@ -41,7 +57,7 @@ int cp(int l, int r){
     return A[l][r] = 1;
 }
 
-int f(int a){
+inline int f(int a){
     int ans = 0;
     while(a > 0){
         ++ans;
@@ -68,7 +84,9 @@ int cm(int l,int r){
 }
 
 int main(){
-    int len = strlen(gets(str));
-    printf("%d\n", len - cm(0, len - 1));
+    string s;
+    while(getline(cin, s)) str.push_back(Unicode(s));
+    int len = min((int)str.size(), 700);
+    cout << len - cm(0, len - 1);
     return 0;
 }

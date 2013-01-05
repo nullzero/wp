@@ -161,10 +161,12 @@ import random
 from subprocess import Popen, PIPE, STDOUT
 
 def randomCheckRepetition(s):
+    s = s.encode("utf-8")
+    s = re.sub("", "\n", re.sub("\n", "", s))
     size = len(s)
-    begin = random.randint(0, max(0, size - 700))
-    end = min(begin + 700, size)
-    
+    begin = random.randint(0, max(0, size - 700 * 2))
+    end = min(begin + 700 * 2, size)
+    if len(s[begin:end]) == 0: return 0
     p = Popen([preload.File(__file__, "rle2")], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
     output = p.communicate(input=s[begin:end])[0]
     return int(output)
