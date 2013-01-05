@@ -14,7 +14,7 @@ import query, userlib
 from lib import libdate, liblang, libstring, libgenerator, librevision, miscellaneous
 import wikipedia as pywikibot
 
-startChecking = 20
+startChecking = 200
 site = preload.site
 env = preload.env
 
@@ -24,11 +24,12 @@ const = {
 
 NotEncyList = [
     ([u"==\s*วิสัยทัศน์\s*==", u"==\s*พันธกิจ\s*=="], u"วิสัยทัศน์ฯ ไม่เป็นสาราฯ", const['UNLIM']), 
-    ([u"สัญญลักษณ์"], u"วุ้นแปลภาษา", const['UNLIM']),
-    ([u"!!\s*((แสดง)?คู่(กับ)?|นักแสดงร่วม)", u"!!\s*ออกอากาศ"], u"ลบตาม[[วิกิพีเดีย:โครงการวิกิภาพยนตร์/รูปแบบการเขียน/บทความนักแสดง]]", 1),
+    ([u"สัญญลักษณ์"], u"วุ้นแปลภาษา", 1),
+    ([u"!!\s*((แสดง)?คู่(กับ)?|นักแสดงร่วม)", u"!!\s*ออกอากาศ"], u"ตาม[[วิกิพีเดีย:โครงการวิกิภาพยนตร์/รูปแบบการเขียน/บทความนักแสดง]]", 1),
+    ([u"Example.jpg"], u"ไม่เป็นสาราฯ", 1)
 ]
 
-def readFileBWList(vector, filename):
+def readFileList(vector, filename):
     with open(preload.File(__file__, filename), "r") as f:
         lines = f.readlines()
         for line in lines:
@@ -39,12 +40,10 @@ try:
     VandalBlacklist = []
     UserBlacklist = []
     UserWhitelist = []
-    NoRepetitionChecking = []
     
-    readFileBWList(VandalBlacklist, "VandalBlacklist.txt")
-    readFileBWList(UserBlacklist, "UserBlacklist.txt")
-    readFileBWList(UserWhitelist, "UserWhitelist.txt")
-    readFileBWList(NoRepetitionChecking, "NoRepetitionChecking.txt")
+    readFileList(VandalBlacklist, "VandalBlacklist.txt")
+    readFileList(UserBlacklist, "UserBlacklist.txt")
+    readFileList(UserWhitelist, "UserWhitelist.txt")
 except:
     preload.error()
 
@@ -64,7 +63,7 @@ def notifyOSD(s):
     except: pass
 
 def delete(page, reason, labelDelete = False):
-    pywikibot.output(u"ลบ: " + page['title'] + u": " + reason)
+    pywikibot.output(u">>> ลบ: " + page['title'] + u": " + reason)
     notifyOSD(u"ลบ: " + page['title'] + u": " + reason)
     summary = reason
     pageObject = pywikibot.Page(site, page['title'])
@@ -78,7 +77,7 @@ def delete(page, reason, labelDelete = False):
 revertedDict = {}
 
 def revert(page, reason, newpage, template = None, makeWar = False):
-    pywikibot.output(u"ย้อน/ลบ: " + page['title'] + u": " + reason)
+    pywikibot.output(u">>> ย้อน/ลบ: " + page['title'] + u": " + reason)
     notifyOSD(u"ย้อน/ลบ: " + page['title'] + u": " + reason)
     
     if not makeWar:
@@ -107,11 +106,11 @@ patHTML = u"(https?://.*?)(?=(<\s*/\s*ref\s*>|\s|$))"
 
 def decoder(url):
     url = url.group(1)
-    url = re.sub(u"%[0-7]\w", lambda x: u"_place_holder_(%s)" % x.group(), url)
+    url = re.sub(u"%[0-7]\w", lambda x: u"~place~holder~(%s)" % x.group(), url)
     url = urllib.unquote(url.encode("utf-8")).decode("utf-8")
     for ch in xrange(len(reserveChar)):
-        url = url.replace(u"_place_holder_(" + reserveChar[ch] + u")", reserveCharEn[ch])
-    url = re.sub(u"_place_holder_\((.*?)\)", lambda x: urllib.quote(x.group(1)), url)
+        url = url.replace(u"~place~holder~(" + reserveChar[ch] + u")", reserveCharEn[ch])
+    url = re.sub(u"~place~holder~\((.*?)\)", lambda x: urllib.quote(x.group(1)), url)
     return url
 
 def clean(page):
@@ -135,7 +134,10 @@ def clean(page):
     except:
         pass
     
-    if content != ocontent: page.put(content, u"โรบอต: เก็บกวาด", force = True)
+    if content != ocontent:
+        try: page.put(content, u"โรบอต: เก็บกวาด", force = True)
+        except: preload.error()
+            
     liblang.fixRepetedVowelTitle(page)
 
 def check(revision):
@@ -146,7 +148,7 @@ def check(revision):
     page = librevision.getRevision(revision[1]['revid'], 'diff')
     if DEBUG and page['title'] != u"ผู้ใช้:Nullzero/กระบะทราย": return
     
-    pywikibot.output(u"กำลังตรวจสอบหน้า " + page['title'] + u" @ " + page['revisions'][0]['timestamp'])
+    pywikibot.output(u"=== กำลังตรวจสอบหน้า %s @ %s โดย %s" % (page['title'], page['revisions'][0]['timestamp'], page['revisions'][0]['user']))
     
     """
     ยกเลิกการตรวจสอบ: ผิดพลาด
@@ -155,7 +157,7 @@ def check(revision):
         curpage = pywikibot.Page(site, page['title'])
         content = curpage.get()
     except:
-        pywikibot.output(u"ผิดพลาด: ไม่สามารถเรียกข้อมูลหน้าได้ ยกเลิกการตรวจสอบ")
+        pywikibot.output(u"!!! ไม่สามารถเรียกข้อมูลหน้าได้ ยกเลิกการตรวจสอบ")
         pywikibot.output(traceback.format_exc().decode("utf-8"))
         return
         
@@ -164,8 +166,9 @@ def check(revision):
     """
     user = userlib.User(site, page['revisions'][0]['user'])
     
-    if user.isRegistered() and (('sysop' in user.groups()) or \
-        (page['revisions'][0]['user'] in UserWhitelist) or \
+    if (page['title'] != u"ผู้ใช้:Nullzero/กระบะทราย") and \
+        user.isRegistered() and (('sysop' in user.groups()) or \
+        (page['revisions'][0]['user'].capitalize() in UserWhitelist) or \
         (page['revisions'][0]['user'].capitalize() == env['USER'].capitalize())):
         pywikibot.output(u"คนดีเขียนครับ!")
         return curpage
@@ -173,10 +176,16 @@ def check(revision):
     autoconfirmed = user.isRegistered() and ('autoconfirmed' in user.groups())
     
     """
+    ผู้ใช้ก่อกวน - ความสามารถนี้ใช้เฉพาะกิจและใช้เมื่อไม่มีความสามารถผู้ดูแลระบบ โปรดหลีกเลี่ยงการใช้หากเป็นไปได้
+    """
+    if page['revisions'][0]['user'].capitalize() in UserBlacklist:
+        revert(page, u"ก่อกวน", newpage, makeWar = (page['ns'] == 0))
+    
+    """
     ยกเลิกการตรวจสอบ: มีป้ายแล้ว
     """
     if re.search(u"\{\{(ลบ|Delete|Sd|ละเมิดลิขสิทธิ์|Copyvio).*?\}\}", content, re.IGNORECASE | re.DOTALL):
-        pywikibot.output(u"มีป้ายติดอยู่แล้ว! ยกเลิกการตรวจสอบ")
+        pywikibot.output(u"!!! มีป้ายติดอยู่แล้ว! ยกเลิกการตรวจสอบ")
         return
     
     """
@@ -184,7 +193,7 @@ def check(revision):
     TODO: หวังว่าคงไม่เจอสแปมในหน้านี้นะ
     """
     if page['title'].endswith(u".js") or page['title'].endswith(u".css"):
-        pywikibot.output("พบไฟล์ผู้ใช้! ยกเลิกการตรวจสอบ")
+        pywikibot.output("!!! พบไฟล์ผู้ใช้! ยกเลิกการตรวจสอบ")
         return
     
     """
@@ -195,7 +204,7 @@ def check(revision):
         (page['title'].startswith(u"ผู้ใช้:" + page['revisions'][0]['user']) and \
         (re.search(u"(ทดลองเขียน|กระบะทราย|กระดาษทด)", page['title']) is not None)) \
         or (re.sub("\ ", "_", page['title']) in miscellaneous.sandboxPages):
-        pywikibot.output(u"พบหน้าทดลอง! ยกเลิกการตรวจสอบ")
+        pywikibot.output(u"!!! พบหน้าทดลอง! ยกเลิกการตรวจสอบ")
         return curpage
     
     if not page['revisions'][0]['diff']['from']:
@@ -327,19 +336,19 @@ def check(revision):
     4. เพิ่มข้อมูลต่ำกว่า 32 เท่าของข้อมูลที่ลบ
     """
     if not autoconfirmed and (not page['title'].startswith(u"ผู้ใช้:" + page['revisions'][0]['user'])) and \
-        len(deletedLine) >= 32 * len(addedLine) and len(deletedLine) >= 1000:
+        len(deletedLine) >= 10 * len(addedLine) and len(deletedLine) >= 1000:
         revert(page, u"ถูกลบข้อมูลออก", False)
         return
-    
+        
     """
     ก่อกวนโดยการใส่ข้อมูลซ้ำ ๆ กัน
     """
-    if page['title'] not in NoRepetitionChecking:
-        repetition = liblang.checkRepetition(addedLine)
-        pywikibot.output(u"ข้อมูลซ้ำ %d ไบต์" % repetition)
-        if len(addedLine) > 0 and repetition >= 100:
-            revert(page, u"ก่อกวน", False, makeWar = True)
-            return
+    #if page['title'] not in NoRepetitionChecking:
+    repetition = liblang.checkRepetition(addedLine)
+    pywikibot.output(u"ข้อมูลซ้ำ %d ไบต์" % repetition)
+    if len(addedLine) > 0 and repetition >= 100:
+        revert(page, u"ก่อกวน", False, makeWar = True)
+        return
     
     return curpage
 
