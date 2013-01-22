@@ -18,7 +18,7 @@ pywikibot.handleArgs(u"-user:nullzerotest")
 
 startChecking = 1
 site = pywikibot.getSite()
-env = preload.env
+env = preload_notify.env
 insertDisamT = pywikibot.Page(site, u"User:Nullzerobot/ข้อความ/insert-disam").get()
 
 revertedDict = {}
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     try:
         for revision in gen: check(revision)
     except:
-        preload.error()
+        preload_notify.error()
     
     pywikibot.output(u"สคริปต์แจ้งโยงไปยังหน้าแก้กำกวมหยุดทำงาน ณ เวลา %s" % libdate.getTime())
     pywikibot.stopme()
