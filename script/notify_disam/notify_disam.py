@@ -21,12 +21,14 @@ site = pywikibot.getSite()
 env = preload_notify.env
 insertDisamT = pywikibot.Page(site, u"User:Nullzerobot/ข้อความ/insert-disam").get()
 
-revertedDict = {}
-
 def notify(user, page, link):
     if user == u"JBot": return
     usertalk = pywikibot.Page(site, u"User talk:" + user)
-    if not usertalk.exists(): pywikibot.output(u">>> ไม่มีหน้านี้มาก่อน - ไอพี ไม่เตือน")
+    
+    if not usertalk.exists():
+	pywikibot.output(u">>> ไม่มีหน้านี้มาก่อน - ไอพี ไม่เตือน")
+	return
+	
     content = usertalk.get()
     listold = re.findall(u"<!-- เริ่มลิงก์ -->(.*?)<!-- จบลิงก์ -->", content)
     for linkold in listold:
