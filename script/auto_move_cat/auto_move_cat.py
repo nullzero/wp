@@ -34,10 +34,17 @@ def domove(source, dest):
     if DONOTMOVE: return
     robot = category.CategoryMoveRobot(source, dest, batchMode = True,
         editSummary = u"", inPlace = False, titleRegex = None, withHistory = False)
-    robot.run()
+    try:
+        robot.run()
+    except:
+        var = traceback.format_exc()
+        pywikibot.output(u"Unexpected error!")
+        pywikibot.output(var.decode("utf-8"))
+        return
+        
     pageCat = pywikibot.Page(site, u"หมวดหมู่:" + source)
     pageCat.put(u"{{bots|allow=" + env['USER'].decode("utf-8") + u"}}\n{{ลบ|บอตย้ายหมวดหมู่ไป[[:หมวดหมู่:" + dest + u"]] แล้ว}}", 
-        u"ย้ายหมวดหมู่โดยบอต")
+        u"ย้ายหมวดหมู่โดยบอต", force = True)
 
 def verify(name, flag):
     if(flag): return True

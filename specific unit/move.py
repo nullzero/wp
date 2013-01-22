@@ -15,28 +15,33 @@ import re
 
 movebot = movepages.MovePagesBot(None, None, True, False, True, u"โรบอต: เปลี่ยนชื่อบทความเข้าบทความหลัก")
 
-gen = pagegenerators.TextfilePageGenerator("movepagelist (wikibooks)")
-cntpage = 0
-ask = True
+gen = pagegenerators.PrefixingPageGenerator(prefix = u"วิกิตำรา:ชั้นหนังสือ")
 site = pywikibot.getSite()
 
+always = False
+
+
 for page in gen:
-    another = pywikibot.Page(site, u"OpenOffice/" + page.title())
-    try:
-        another.get()
-        page.get()
-    except pywikibot.NoPage:
-        movebot.moveOne(page, u"OpenOffice/" + page.title())
-        try:
-            page.get()
-            page.put(u"{{ลบ|ย้ายไป /OpenOffice}}", u"ย้ายไป /OpenOffice", force = True)
-        except:
-            pass
-    except pywikibot.IsRedirectPage:
-        page.put(u"{{ลบ|ย้ายไป /OpenOffice}}", u"ย้ายไป /OpenOffice", force = True)
-        
-    cntpage += 1
-    if cntpage % 10 == 0 and ask:
-        s = raw_input("Continue?")
-        if s == "n": break
-        elif s == "a": ask = False
+    genall = pagegenerators.ReferringPageGenerator(page, followRedirects=True)
+    for pageref in genall:
+        print "processing", pageref.title()
+        try: ocontent = pageref.get()
+        except: continue
+        content = ocontent.replace(u"{{วิกิตำรา:ชั้นหนังสือ", u"{{ชั้นหนังสือ")
+        if ocontent != content:
+            pywikibot.showDiff(ocontent, content)
+            try: pageref.put(content, u"เก็บกวาด", force = True)
+            except: pass
+
+"""
+genall = pagegenerators.ReferringPageGenerator(page)
+for pageref in genall:
+    print "processing", pageref.title()
+    try: ocontent = pageref.get()
+    except: continue
+    content = process(ocontent, page.title(), u"{{วิกิตำรา:ชั้นหนังสือ/")
+    if ocontent != content:
+        pywikibot.showDiff(ocontent, content)
+        try: pageref.put(content, u"เก็บกวาด", force = True)
+        except: pass
+"""

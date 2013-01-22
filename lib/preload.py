@@ -126,6 +126,7 @@ except IOError:
     putData('SYSOP', "คุณเป็นผู้ดูแลระบบหรือเปล่า (y/n): ", lambda ans: ans in "yn")
     putData('TMP', data = "/tmp")
     putData('WORK', data = simplifyPath(os.path.join(os.path.dirname(__file__), "..")))
+    putData('SANDBOX', "โปรดใส่ชื่อหน้ากระบะทราย (ทดสอบการกระทำผู้ใช้ใหม่): ")
 
 env = loadConfig()
 sys.path.append(env['PYWIKI'])

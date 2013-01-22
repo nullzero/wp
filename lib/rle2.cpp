@@ -90,3 +90,20 @@ int main(){
     cout << len - cm(0, len - 1);
     return 0;
 }
+
+/*
+a
+b
+b
+b
+b
+b
+a
+a
+b
+b
+b
+b
+b
+a
+*/

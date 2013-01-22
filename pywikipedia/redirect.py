@@ -513,7 +513,7 @@ class RedirectRobot:
                         ### TODO: Add bot's signature if needed
                         ###       Not supported via TW yet
                         content = u'{{ลบ|หน้าเปลี่ยนทางเสีย}}' + "\n" + content
-                        redir_page.put(content, reason)
+                        redir_page.put(content, reason, force = True)
             except pywikibot.IsRedirectPage:
                 pywikibot.output(
         u'Redirect target %s is also a redirect! Won\'t delete anything.'
