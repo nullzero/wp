@@ -103,8 +103,9 @@ def check(revision):
         if u":" in link[0]: continue
         if link[0].startswith(u"#"): continue
         try:
-            if pywikibot.Page(site, link[0]).isDisambig():
-                disamlinks.append(link[0])
+            dpage = pywikibot.Page(site, link[0])
+            if dpage.isRedirectPage(): dpage = dpage.getRedirectTarget()
+            if dpage.isDisambig(): disamlinks.append(link[0])
         except: pywikibot.output(traceback.format_exc().decode("utf-8"))
     
     if len(disamlinks) != 0:
