@@ -132,6 +132,7 @@ env = loadConfig()
 sys.path.append(env['PYWIKI'])
 
 if not os.path.exists(os.path.join(env['PYWIKI'], "user-config.py")):
+    create_user_config(env['PYWIKI'], env['USER'])
     env = loadConfig()
 
 import wikipedia as pywikibot

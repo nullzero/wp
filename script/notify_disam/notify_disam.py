@@ -14,7 +14,7 @@ import query, userlib
 from lib import libdate, liblang, libstring, libgenerator, librevision, miscellaneous
 import wikipedia as pywikibot
 
-pywikibot.handleArgs(u"-user:nullzerotest")
+pywikibot.handleArgs(u"-user:Nullzerotest")
 
 startChecking = 1
 site = pywikibot.getSite()
