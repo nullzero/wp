@@ -5,7 +5,7 @@ DEBUG = False
 import sys, os, re, time, traceback, urllib, subprocess
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-try: from lib import preload
+try: from lib import preload_notify
 except:
     print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
@@ -25,16 +25,14 @@ revertedDict = {}
 
 def notify(user, page, link):
     if user == u"JBot": return
-    content = u""
     usertalk = pywikibot.Page(site, u"User talk:" + user)
-    if usertalk.exists() and not usertalk.botMayEdit(site.loggedInAs()): return
-    if usertalk.exists():
-        content = usertalk.get()
-        listold = re.findall(u"<!-- เริ่มลิงก์ -->(.*?)<!-- จบลิงก์ -->", content)
-        for linkold in listold:
-            if linkold == link:
-                pywikibot.output(u">>> แต่เคยแจ้งแล้ว เลิกการแจ้ง!")
-                return
+    if not usertalk.exists(): pywikibot.output(u">>> ไม่มีหน้านี้มาก่อน - ไอพี ไม่เตือน")
+    content = usertalk.get()
+    listold = re.findall(u"<!-- เริ่มลิงก์ -->(.*?)<!-- จบลิงก์ -->", content)
+    for linkold in listold:
+        if linkold == link:
+            pywikibot.output(u">>> แต่เคยแจ้งแล้ว เลิกการแจ้ง!")
+            return
     
     message = insertDisamT
     message = message.replace(u"<!-- ชื่อผู้ใช้ -->", user)
@@ -42,7 +40,7 @@ def notify(user, page, link):
     message = message.replace(u"<!-- ลิงก์ -->", link)
     
     try:
-        usertalk.put(content + u"\n" + message + u" --~~~~", u"แจ้งใส่ลิงก์โยงไปยังหน้าแก้กำกวม", force = True)
+        usertalk.put(content + u"\n" + message + u" --~~~~", u"แจ้งใส่ลิงก์โยงไปยังหน้าแก้กำกวม")
     except:
         pywikibot.output(traceback.format_exc().decode("utf-8"))
         return

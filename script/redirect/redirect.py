@@ -8,12 +8,17 @@ except:
     print "Cannot import preload. Exit!"
     sys.exit()
 
+
 from lib import libdate
 import wikipedia as pywikibot
+
+pywikibot.handleArgs("-family:wikibooks")
+pywikibot.handleArgs("-user:nullzero")
+pywikibot.handleArgs("-log")
+
 from pywikipedia.redirect import RedirectGenerator, RedirectRobot
 
 if __name__ == "__main__":
-    pywikibot.handleArgs("-log")
     pywikibot.output(u"'redirect script' is invoked. (%s)" % libdate.getTime())
     gen = RedirectGenerator(namespaces = [0], use_api = True)
     bot = RedirectRobot(action = 'both', generator = gen, always = True)
