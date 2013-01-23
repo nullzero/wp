@@ -83,14 +83,14 @@ def main(*args):
     
     pageMain = pywikibot.Page(site, pageprocess)
     text = pageMain.get(get_redirect = True)
-    pre, post = text.split(u"-->")
+    pre, post = text.split(u"!! เสนอโดย")
     
     if SUFFIX.strip() == post.strip():
         pywikibot.output("Nothing to do here")
         return
     
     summary = u"ย้ายหมวดหมู่ ณ เวลา "
-    pageMain.put(pre + u"-->" + SUFFIX, u"เริ่ม" + summary + libdate.getTime())
+    pageMain.put(pre + u"!! เสนอโดย" + SUFFIX, u"เริ่ม" + summary + libdate.getTime())
     
     text = post
 
