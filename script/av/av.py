@@ -14,7 +14,7 @@ import query, userlib
 from lib import libdate, liblang, libstring, libgenerator, librevision, miscellaneous
 import wikipedia as pywikibot
 
-startChecking = 10
+startChecking = 5
 site = preload.site
 env = preload.env
 
@@ -31,10 +31,8 @@ NotEncyList = [
 
 def readFileList(vector, filename):
     with open(preload.File(__file__, filename), "r") as f:
-        lines = f.readlines()
-        for line in lines:
-            dat = line.decode("utf-8").strip()
-            if dat != u"": vector.append(dat)
+        dat = [x.strip().decode("utf-8").replace(u"\u200e", u"") for x in f.read().split() if x.strip() != ""]
+        for i in dat: vector.append(i)
 
 try:
     VandalBlacklist = []
@@ -97,7 +95,7 @@ def revert(page, reason, newpage, template = None, makeWar = False):
     
     librevision.revert(page['pageid'], 
         page['revisions'][0]['revid'], 
-        summary + preload.summarySuffix, 
+        summary, 
         page['title'])
 
 reserveChar = [x for x in u"/-._"]
@@ -130,9 +128,10 @@ def clean(page):
     """
     decode HTML เพื่อความสะอาด
     """
+    '''
     try: content = re.sub(patHTML, decoder, content, re.DOTALL)
     except: preload.error()
-    
+    '''
     if content != ocontent:
         try: page.put(content, u"โรบอต: เก็บกวาด", force = True)
         except: preload.error()
@@ -181,9 +180,10 @@ def check(revision):
     """
     ผู้ใช้ก่อกวน - ความสามารถนี้ใช้เฉพาะกิจและใช้เมื่อไม่มีความสามารถผู้ดูแลระบบ โปรดหลีกเลี่ยงการใช้หากเป็นไปได้
     """
+    
     if page['revisions'][0]['user'] in UserBlacklist:
         revert(page, u"ก่อกวน", newpage, makeWar = (page['ns'] == 0))
-    
+    '''
     """
     ยกเลิกการตรวจสอบ: มีป้ายแล้ว
     """
@@ -356,10 +356,9 @@ def check(revision):
     
     if page['title'].startswith(u"ไฟล์:"):
         if imageCheckFail(content, page['revisions'][0]['user']): return
-    
+    '''
     return curpage
 
-"""
 if __name__ == "__main__":
     pywikibot.handleArgs("-log")
     pywikibot.output(u"สคริปต์ย้อนก่อกวนเริ่มทำงาน ณ เวลา %s" % libdate.getTime())
@@ -376,5 +375,5 @@ if __name__ == "__main__":
     
     pywikibot.output(u"สคริปต์ย้อนก่อกวนหยุดทำงาน ณ เวลา %s" % libdate.getTime())
     pywikibot.stopme()
-"""
-clean(pywikibot.Page(site, u"คุยกับผู้ใช้:Jutiphan"))
+
+#   clean(pywikibot.Page(site, u"คุยกับผู้ใช้:Jutiphan"))
