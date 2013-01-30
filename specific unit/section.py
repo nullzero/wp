@@ -2,7 +2,7 @@
 
 import sys
 
-sys.path.append("/home/sorawee/wp")
+sys.path.append("/home/nullzero/wp")
 
 from lib import preload
 from lib import libcleaner, liblang
@@ -10,7 +10,7 @@ import wikipedia as pywikibot
 
 site = preload.site
 always = False
-for page in site.allpages(start='ISO', includeredirects = False):
+for page in site.allpages(includeredirects = False):
     print ">>>", page.title()
     try:
         ocontent = page.get()
