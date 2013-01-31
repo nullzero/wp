@@ -34,6 +34,7 @@ def consecutiveSpace(s):
 
 def clean(s):
     s = liblang.fixRepetedVowel(s)
+    s = re.sub(u"_(?=[^\[\]]*\]\])", u" ", s)
     s = re.sub(u"(?<!=)[ \t\r\f\v]+$", u"", s, flags = re.MULTILINE)
     s = re.sub(u"=$", u"= ", s, flags = re.MULTILINE)
     s = re.sub(u"^(=+)[ \t\r\f\v]*(.*?)[ \t\r\f\v]*(=+)[ \t\r\f\v]*$", u"\g<1> \g<2> \g<3>", s, flags = re.MULTILINE)
@@ -57,5 +58,5 @@ def clean(s):
     return s
 
 if __name__ == "__main__":
-    print clean(u"""|}   a
+    print clean(u"""[[_asd_asd]]a
 """)

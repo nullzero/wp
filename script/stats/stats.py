@@ -109,8 +109,6 @@ def writetable(table, title):
         (title, title), u"".join(map(lambda x: u"\n|-\n| " + x, table)) + u"\n", contentMain, flags = re.DOTALL)
 
 def flush():
-    print contentMain
-    return
     pageMain.put(contentMain, u"ปรับปรุงรายการ")
 
 def getrankold(title, table):
@@ -154,8 +152,6 @@ def main():
     for page, length in site.longpages(5):
         table.append([page.title(), getrankold(page.title(), oldlongpages), length])
     writetable(table, u"บทความยาวสุด")
-    flush()
-    '''
     """
     most edits (user)
     """
@@ -173,5 +169,5 @@ def main():
             table.append([name, getrankold(name, oldusers), cnt])
     writetable(table, u"ชาววิกิพีเดียที่เขียนมากที่สุด")
     flush()
-    '''
+
 main()

@@ -10,7 +10,7 @@ import wikipedia as pywikibot
 
 site = preload.site
 always = False
-for page in site.allpages(includeredirects = False):
+for page in site.allpages(includeredirects = False, start=u'กีฬาฟันดาบ'):
     print ">>>", page.title()
     try:
         ocontent = page.get()
