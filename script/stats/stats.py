@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import sys, os, re, time, traceback, urllib, subprocess, StringIO
+import sys, os, re, time, traceback, urllib, subprocess, datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 try: from lib import preload
@@ -32,26 +32,6 @@ def firstContributor(title):
     return u"[[User:%s|%s]]" % (name, name)
 
 def pagestat(): 
-    '''
-    allpages = []
-    allpages.append((1, u"ครูพิเศษจอมป่วน รีบอร์น!"))
-    allpages.append((2, u"ยกสยามปี 2"))
-    allpages.append((3, u"ประเทศไทย"))
-    allpages.append((4, u"อัจฉริยะข้ามคืน"))
-    allpages.append((5, u"ระเบิดเถิดเทิง"))
-    allpages.append((6, u"อภิสิทธิ์ เวชชาชีวะ"))
-    allpages.append((7, u"สงครามโลกครั้งที่สอง"))
-    allpages.append((8, u"พัดชา เอนกอายุวัฒน์"))
-    allpages.append((9, u"ยกสยาม"))
-    allpages.append((10, u"ทักษิณ ชินวัตร"))
-    allpages.append((11, u"รายชื่อห้างสรรพสินค้าในประเทศไทย"))
-    allpages.append((12, u"รายชื่อนวนิยายไทย"))
-    allpages.append((13, u"รายชื่อการ์ตูนญี่ปุ่น"))
-    allpages.append((14, u"รายชื่อตัวละครในดราก้อนบอล"))
-    allpages.append((15, u"รายชื่อตัวละครในนินจาคาถาโอ้โฮเฮะ"))
-    
-    return sorted(allpages, key=lambda x: x[0], cmp=lambda a, b: b - a)
-    '''
     allpages = []
     for page in site.allpages(includeredirects = False):
         print ">>>", page.title()
@@ -105,8 +85,9 @@ def writetable(table, title):
         table[i][0] = u"%s %d. [[%s]]" % (tag(i + 1 - table[i][1]), i + 1, table[i][0])
         if table[i][1] == INF: table[i][1] = u"มาใหม่"
         table[i] = u" || ".join([unicode(x) for x in table[i]])
-    contentMain = re.sub(u"(?<=<!-- เริ่มตาราง%s -->).*?(?=<!-- จบตาราง%s -->)" % 
-        (title, title), u"".join(map(lambda x: u"\n|-\n| " + x, table)) + u"\n", contentMain, flags = re.DOTALL)
+    contentMain = re.sub(u"(?<=<!-- เริ่มตาราง%s -->).*?(?=<!-- จบตาราง%s -->)" % (title, title),
+        u"".join(map(lambda x: u"\n|-\n| " + x, table)) + u"\n|}\n{{hatnote|ปรับปรุง %s}}\n" % datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        contentMain, flags = re.DOTALL)
 
 def flush():
     pageMain.put(contentMain, u"ปรับปรุงรายการ")
@@ -138,6 +119,8 @@ def main():
         elif len(table) < 10:
             rankold = getrankold(allpages[ptr][1], oldtable)
             table.append([allpages[ptr][1], rankold, allpages[ptr][0], firstContributor(allpages[ptr][1])])
+            ptr += 1
+        elif (len(tablelist) < 5) or (len(table) < 10):
             ptr += 1
         else:
             break
