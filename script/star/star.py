@@ -150,9 +150,6 @@ if __name__ == "__main__":
         
         if (content is not None) and (ocontent != content):
             pywikibot.showDiff(ocontent, content)
-            if not always: choice = raw_input()
-            if choice == 'n': continue
-            if choice == 'a': always = True
             page.put(content, u"ลบตาม[[วิกิพีเดีย:โครงการวิกิภาพยนตร์/รูปแบบการเขียน/บทความนักแสดง]]", force = True)
     
     pywikibot.stopme()
