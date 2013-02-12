@@ -114,6 +114,7 @@ def decoder(url):
 
 def clean(page):
     if page is None: return
+    '''
     pywikibot.output(u"ผ่านครับ! เริ่มเก็บกวาดกัน")
     ocontent = page.get()
     content = ocontent
@@ -127,16 +128,15 @@ def clean(page):
     content = re.sub(u"(?<!=)[ \t\r\f\v]+$", u"", content, flags = re.MULTILINE)
     """
     decode HTML เพื่อความสะอาด
-    """
-    '''
     try: content = re.sub(patHTML, decoder, content, re.DOTALL)
     except: preload.error()
-    '''
+    """
     if content != ocontent:
         try: page.put(content, u"โรบอต: เก็บกวาด", force = True)
         except: preload.error()
             
     liblang.fixRepetedVowelTitle(page)
+    '''
 
 def imageCheckFail(content, user):
     pass
@@ -180,6 +180,8 @@ def check(revision):
     """
     ผู้ใช้ก่อกวน - ความสามารถนี้ใช้เฉพาะกิจและใช้เมื่อไม่มีความสามารถผู้ดูแลระบบ โปรดหลีกเลี่ยงการใช้หากเป็นไปได้
     """
+    
+    if page['title'] == u"วิกิพีเดีย:ทดลองเขียน": return
     
     if page['revisions'][0]['user'] in UserBlacklist:
         revert(page, u"ก่อกวน", newpage, makeWar = (page['ns'] == 0))

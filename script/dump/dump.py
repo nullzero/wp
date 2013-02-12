@@ -26,7 +26,7 @@ content = f.read()
 filename = re.findall("pagecounts.*?\.gz", content)[-1]
 urllib.urlretrieve(os.path.join(url, filename), "DLFILE.gz", reporthook=dlProgress)
 os.system("gunzip --force DLFILE.gz")
-filename = filename[:-len(".gz")]
+filename = "DLFILE"
 cbreak = False
 lines = []
 page = pywikibot.Page(site, u"ผู้ใช้:Nullzerobot/stats")
@@ -49,8 +49,8 @@ while len(content) <= 100:
     if ":" in name: continue
     if re.search("^undefined$", name, flags = re.IGNORECASE) is not None: continue
     if name == u"th": continue
-    content.append(u"| %s || %s\n|-\n" % (name.decode("utf-8").replace(u"_", u" "), lines[ptr][2].decode("utf-8")))
-content = u'{| class = "wikitable"\n|-\n! บทความ !! จำนวนยอดผู้เข้าชม\n' + u"".join(content) + u'|}'
+    content.append(u"| [[%s]] || %s\n|-\n" % (name.decode("utf-8").replace(u"_", u" "), lines[ptr][2].decode("utf-8")))
+content = u'{| class = "wikitable"\n|-\n! บทความ !! จำนวนยอดผู้เข้าชม\n|-\n' + u"".join(content) + u'|}'
 print content
 page.put(content, u"ปรับปรุงรายการ")
 pywikibot.stopme()
