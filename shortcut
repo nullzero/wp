@@ -3,20 +3,12 @@
 current_dir="$(dirname $0)"
 
 if test "$1" == "-clean"; then
-    rm -f "${current_dir}/config/data.cfg"
-    rm -f "${current_dir}"/*.pyc
-    rm -f "${current_dir}/pywikipedia"/*.pyc
-    for i in "${current_dir}/script"/*; do
-        cd "$i"
-        rm -f "${i}"/*.pyc
-    done
+    find "${current_dir}" -type f | grep -P "\.pyc$" | xargs rm
 elif test "$1" == "-gitrm"; then
     git rm $(git ls-files --deleted)
 elif test "$1" == "-clearlog"; then
-    while read line; do
-        basepath=`(echo ${line} | grep -q "BASEPATH:\ ") && (echo ${line} | sed "s/BASEPATH:\ \(.*\)/\1/")`
-        break
-    done < "${current_dir}/config/data.cfg"
+    file="$current_dir"/config/data.cfg
+    basepath="$(grep -o -P "(?<=PYWIKI: ).*" $file)"
     mkdir "${basepath}/logs/new"
     mv "${basepath}/logs"/*.log "${basepath}/logs/new/"
     mv "${basepath}/logs/old/" "${basepath}/logs/new/"

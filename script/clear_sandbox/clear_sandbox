@@ -11,7 +11,7 @@ except:
 
 from lib import libdate
 import pwikipedia as pywikibot
-
+"""
 if __name__ == "__main__":
     pywikibot.handleArgs(u"-log")
     pywikibot.output(u"สคริปต์ล้างกระบะทรายเริ่มทำงาน ณ เวลา %s" % libdate.getTime())
@@ -25,3 +25,5 @@ if __name__ == "__main__":
 
     pywikibot.output(u"สคริปต์ล้างกระบะทรายหยุดทำงาน ณ เวลา %s" % libdate.getTime())
     pywikibot.stopme()
+"""
+pywikibot.Page(pywikibot.getSite(), u"User:Nullzero/กระบะทราย5").put(u"b", "a")

@@ -2,13 +2,56 @@
 
 current_dir="$(dirname $0)"
 
-if test -e "${current_dir}/script/$1/$1"; then
-    path="${current_dir}/script/$1/$1"
-    if test -z "$2"; then
-        ./"$path"
-    else
-        ./"$path" "$2"
+run(){
+    scriptname="$1"
+    shift
+    if ! test -e "${current_dir}/script/$scriptname"; then
+        echo "!!! ชื่อสคริปต์ไม่ถูกต้อง"
+        exit
     fi
-else
-    echo "The script does not found!"
-fi
+    bot="$(ls ${current_dir}/script/$scriptname/'$'* | grep -o -P '(?<=/\$).*')"
+    echo "ดำเนินการโดย $bot"
+    cd bots/"$bot"
+    ./../../script/"$scriptname/$scriptname" "$@"
+    echo "$>> รันสคริปต์เรียบร้อย"
+}
+
+createuser(){
+    botname="$1"
+    
+    if test -z "$botname"; then
+        echo "!!! โปรดระบุชื่อบอต"
+        exit
+        
+    cd pywikipedia
+    python generate_user_files.py
+    mv user-config.py ../bots/"$botname"
+    cd ../bots
+    mkdir "$botname"
+    cd "$botname"
+    ln -s ../../pywikipedia/families
+    ln -s ../../pywikipedia/userinterfaces
+    echo "$>> สร้างไอดีเรียบร้อย"
+}
+
+setup(){
+    svn checkout http://svn.wikimedia.org/svnroot/pywikipedia/trunk/pywikipedia/ pywikipedia
+    echo "$>> ติดตั้งเรียบร้อย"
+}
+
+cd "$current_dir"
+mode="$1"
+shift
+case "$mode" in
+"run")
+    run "$@"
+    ;;
+"create")
+    create "$@"
+    ;;
+"setup")
+    setup
+*)
+    echo "!!! พารามิเตอร์ไม่ถูกต้อง"
+    ;;
+esac
