@@ -5,9 +5,9 @@ current_dir="$(dirname $0)"
 if test -e "${current_dir}/script/$1/$1.py"; then
     path="${current_dir}/script/$1/$1.py"
     if test -z "$2"; then
-        python "$path"
+        ./"$path"
     else
-        python "$path" "$2"
+        ./"$path" "$2"
     fi
 else
     echo "The script does not found!"

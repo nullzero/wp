@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 DEBUG = False
@@ -26,9 +27,9 @@ def notify(user, page, link):
     usertalk = pywikibot.Page(site, u"User talk:" + user)
     
     if not usertalk.exists():
-	pywikibot.output(u">>> ไม่มีหน้านี้มาก่อน - ไอพี ไม่เตือน")
-	return
-	
+    pywikibot.output(u">>> ไม่มีหน้านี้มาก่อน - ไอพี ไม่เตือน")
+    return
+    
     content = usertalk.get()
     listold = re.findall(u"<!-- เริ่มลิงก์ -->(.*?)<!-- จบลิงก์ -->", content)
     for linkold in listold:

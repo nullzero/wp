@@ -1,0 +1,118 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import sys, os, re, datetime, difflib
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+try: from lib import preload_notify
+except:
+    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
+    sys.exit()
+
+import wikipedia as pywikibot
+from lib import libdate
+pywikibot.handleArgs(u"-user:Nullzerotest")
+
+DEBUG = False
+
+startChecking = 1
+site = preload_notify.site
+
+def check(revision):
+    page = revision[0]
+    revid = revision[1]['revid']
+    oldrevid = revision[1]['oldrevid']
+    contentold = page.getOldVersion(revold)
+    contentnew = page.get()
+    
+    '''
+    newpage = False
+    try:
+        page = librevision.getRevision(revision[1]['revid'], 'diff')
+    except:
+        pywikibot.output(traceback.format_exc().decode("utf-8"))
+        return
+        
+    if DEBUG and (page['title'] != env['SANDBOX'].decode("utf-8")): return
+    
+    pywikibot.output(u"=== กำลังตรวจสอบหน้า %s @ %s โดย %s" % (page['title'], page['revisions'][0]['timestamp'], page['revisions'][0]['user']))
+    
+    """
+    ยกเลิกการตรวจสอบ: ผิดพลาด
+    """
+    try:
+        curpage = pywikibot.Page(site, page['title'])
+        content = curpage.get()
+    except:
+        pywikibot.output(u"!!! ไม่สามารถเรียกข้อมูลหน้าได้ ยกเลิกการตรวจสอบ")
+        pywikibot.output(traceback.format_exc().decode("utf-8"))
+        return
+    
+    if not page['revisions'][0]['diff']['from']:
+        pywikibot.output(u"หน้านี้เป็นหน้าใหม่!")
+        newpage = True
+        change = librevision.getRevision(revision[1]['revid'], 'content')
+    else:
+        change = page['revisions'][0]['diff']['*']
+    
+    lines = change.splitlines()
+    addedLine = u""
+    
+    for line in lines:
+        line = line.strip()
+        if line.startswith(u'<td class="diff-addedline">') or newpage:
+            if not newpage:
+                line = re.sub(u"<td.*?>", u"", line)
+                line = re.sub(u"</td>", u"", line)
+                line = re.sub(u"<div>", u"", line)
+                line = re.sub(u"</div>", u"", line)
+                line = re.sub(u"<span.*?>", u"", line)
+                line = re.sub(u"</span>", u"", line)
+                line = re.sub(u"&lt;", u"<", line)
+                line = re.sub(u"&gt;", u">", line)
+            
+            addedLine += line.rstrip() + u"\n"
+    
+    links = re.findall(u"\[\[(.*?)(\|.*?)?\]\]", addedLine)
+    
+    disamlinks = []
+    
+    for link in links:
+        if u":" in link[0]: continue
+        if link[0].startswith(u"#"): continue
+        try:
+            dpage = pywikibot.Page(site, link[0])
+            if dpage.isRedirectPage(): dpage = dpage.getRedirectTarget()
+            if dpage.isDisambig(): disamlinks.append(link[0])
+        except: pywikibot.output(traceback.format_exc().decode("utf-8"))
+    
+    if len(disamlinks) != 0:
+        pywikibot.output(u">>> พบลิงก์แก้กำกวม")
+        notify(page['revisions'][0]['user'], page['title'], u"* [[" + u"]]\n* [[".join(disamlinks) + u"]]")
+    '''
+    
+if __name__ == "__main__":
+    pywikibot.handleArgs("-log")
+    pywikibot.output(u"สคริปต์แจ้งโยงไปยังหน้าแก้กำกวมเริ่มทำงาน ณ เวลา %s" % libdate.getTime())
+    
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "-d": DEBUG = True
+        
+    gen = site.recentchanges(number = startChecking,
+            rcshow = ['!redirect', '!bot'],
+            namespace = "|".join([str(x) for x in xrange(0, 16, 2) if x != 2]), 
+            repeat = True,
+            returndict = True)
+            
+    todaynum = datetime.datetime.today().day
+    for revision in gen:
+        try:
+            check(revision)
+            if todaynum != datetime.datetime.today().day:
+                flush()
+                todaynum = datetime.datetime.today().day
+        except:
+            preload_notify.error()
+    
+    pywikibot.output(u"สคริปต์แจ้งโยงไปยังหน้าแก้กำกวมหยุดทำงาน ณ เวลา %s" % libdate.getTime())
+    pywikibot.stopme()

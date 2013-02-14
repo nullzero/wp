@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 import sys, datetime, re, os
@@ -5,12 +6,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 
 try: from lib import preload
 except:
-    print "Cannot import preload. Exit!"
+    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
 
 from lib import libdate
 import wikipedia as pywikibot
-import pagegenerators, query
+import query
 
 # constant
 LIMIT = 500
@@ -63,7 +64,7 @@ def dowrite(path, data):
     pywikibot.output(u"done!")
     
 def main():
-    pywikibot.output(u"'most-edits' is invoked. (%s)" % libdate.getTime())
+    pywikibot.output(u"สคริปต์ปรับปรุงสถิติผู้แก้ไขมากที่สุดเริ่มทำงาน ณ เวลา %s" % libdate.getTime())
     includebot = []
     excludebot = []
 
@@ -105,7 +106,7 @@ def main():
     
     dowrite(PATH + BOTSUFFIX, includebot)
     dowrite(PATH, excludebot)
-    pywikibot.output(u"'most-edits' terminated. (%s)" % libdate.getTime())
+    pywikibot.output(u"สคริปต์ปรับปรุงสถิติผู้แก้ไขมากที่สุดหยุดทำงาน ณ เวลา %s" % libdate.getTime())
 
 if __name__ == "__main__":
     try:

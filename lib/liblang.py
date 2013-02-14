@@ -1,10 +1,10 @@
 # -*- coding: utf-8  -*-
 
-import re
+import re, sys
 
 try: import preload
 except:
-    print "Cannot import preload. Exit!"
+    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
     
 import libstring, movepages

@@ -1,6 +1,7 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import sys, re, string, os
+import sys, re, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 try: from lib import preload
@@ -8,11 +9,9 @@ except:
     print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
 
-from lib import libdate, libgenerator, miscellaneous
-import pagegenerators
+from lib import libdate, libgenerator
 import wikipedia as pywikibot
 
-env = preload.env
 site = pywikibot.getSite()
 
 if __name__ == "__main__":
@@ -42,5 +41,5 @@ if __name__ == "__main__":
             if content != original_content:
                 page.put(content, u"บทความมีความยาวพอควรแล้ว นำป้ายสั้นมากออก")
     
-    pywikibot.output(u"สคริปต์ย้อนก่อกวนหยุดทำงาน ณ เวลา %s" % libdate.getTime())
+    pywikibot.output(u"สคริปต์ลบป้ายสั้นมากหยุดทำงาน ณ เวลา %s" % libdate.getTime())
     pywikibot.stopme()

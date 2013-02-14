@@ -1,11 +1,12 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import re, sys, time, os, traceback
+import re, sys, time, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 try: from lib import preload
 except:
-    print "Cannot import preload. Exit!"
+    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
 
 from lib import libdate
@@ -30,16 +31,14 @@ LOCKFILE = "movecat.lock"
 site = pywikibot.getSite()
 
 def domove(source, dest):
-    pywikibot.output(u"move from " + source + " to " + dest)
+    pywikibot.output(u"ย้ายจาก " + source + " ไปยัง " + dest)
     if DONOTMOVE: return
     robot = category.CategoryMoveRobot(source, dest, batchMode = True,
         editSummary = u"", inPlace = False, titleRegex = None, withHistory = False)
     try:
         robot.run()
     except:
-        var = traceback.format_exc()
-        pywikibot.output(u"Unexpected error!")
-        pywikibot.output(var.decode("utf-8"))
+        preload.error()
         return
         
     pageCat = pywikibot.Page(site, u"หมวดหมู่:" + source)
@@ -68,12 +67,12 @@ def catempty(title, flag):
     listOfArticles = cat.articlesList(recurse = False)
     return len(listOfArticles) == 0
 
-def main(*args):
+def main():
     flag = False
-    pywikibot.output(u"'move-category service' is invoked. (%s)" % libdate.getTime())
+    pywikibot.output(u"สคริปต์ย้ายหมวดหมู่เริ่มทำงาน ณ เวลา %s" % libdate.getTime())
     
-    if (len(pywikibot.handleArgs(*args)) > 0) and (pywikibot.handleArgs(*args)[0] == FLUSHPENDING):
-        pywikibot.output(u"Pending mode")
+    if (len(sys.argv) > 1) and (sys.argv[1] == FLUSHPENDING):
+        pywikibot.output(u"ย้ายหน้าที่รอพิจารณา")
         flag = True
         pageprocess = PAGEPENDING
         SUFFIX = u"\n|}"
@@ -86,7 +85,7 @@ def main(*args):
     pre, post = text.split(u"!! เสนอโดย")
     
     if SUFFIX.strip() == post.strip():
-        pywikibot.output("Nothing to do here")
+        pywikibot.output("ไม่มีอะไรให้ทำ!")
         return
     
     summary = u"ย้ายหมวดหมู่ ณ เวลา "
@@ -138,7 +137,7 @@ def main(*args):
         pywikibot.output(text)
     
     if (not isMove) and (not isPend):
-        pywikibot.output("Nothing to do here (WTF)")
+        pywikibot.output("ไม่มีอะไรให้ทำ (WTF)")
         return
 
     report += u"|}"
@@ -159,7 +158,7 @@ def main(*args):
         text += pending
         pagePending.put(text, summary + libdate.getTime())
         
-    pywikibot.output(u"'move-category service' terminated. (%s)" % libdate.getTime())
+    pywikibot.output(u"สคริปต์ย้ายหมวดหมู่หยุดทำงาน ณ เวลา %s" % libdate.getTime())
 
 if __name__ == "__main__":
     pywikibot.handleArgs("-log")
@@ -167,7 +166,7 @@ if __name__ == "__main__":
     lockfile = os.path.join(env['TMP'], LOCKFILE)
     
     if os.path.exists(lockfile):
-        pywikibot.output(u"This script is locked.")
+        pywikibot.output(u"มีการล็อกอยู่อยู่")
         pywikibot.stopme()
         sys.exit()
     
@@ -176,12 +175,9 @@ if __name__ == "__main__":
     try:
         main()
     except:
-        var = traceback.format_exc()
-        pywikibot.output(u"Unexpected error!")
-        pywikibot.output(var.decode("utf-8"))
+        preload.error()
         sys.exit()
         
     try: os.remove(lockfile)
-    except: pywikibot.output(u"Can't remove lockfile.")
-    pywikibot.output(u"Bye")
+    except: pywikibot.output(u"ลบไฟล์ล็อกไม่ได้")
     pywikibot.stopme()

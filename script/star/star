@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 import re, sys, os
@@ -5,15 +6,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 
 try: from lib import preload
 except:
-    print "Cannot import preload. Exit!"
+    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
 
 from lib import libdate, libcleaner, libgenerator
 import wikipedia as pywikibot
 
 MAXN = 500
-QUEUE = os.path.abspath(os.path.join(os.path.dirname(__file__), "star.fqueue"))
-NOTHING = os.path.abspath(os.path.join(os.path.dirname(__file__), "star.fnothing"))
 
 site = pywikibot.getSite()
 
@@ -33,8 +32,8 @@ def extractHeader(s):
 def dochange(original_content):
     content = original_content
 
-    p_wikitable = re.compile(u"\{\|.*?wikitable.*?\|\}", re.DOTALL)
-    p_rowspan = re.compile(u"rowspan(\ )*=(\ )*\"(.*?)\"")
+    p_wikitable = re.compile(ur"\{\|.*?wikitable.*?\|\}", re.DOTALL)
+    p_rowspan = re.compile(ur"rowspan(\ )*=(\ )*\"(.*?)\"")
     tablelist = p_wikitable.findall(content)
     
     keepcolumn = [([u"พ.ศ.", u"ปี", "ปีที่แสดง"], u"ปี พ.ศ.", const['strict']), 

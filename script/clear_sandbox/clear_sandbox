@@ -1,0 +1,27 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+try: from lib import preload
+except:
+    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
+    sys.exit()
+
+from lib import libdate
+import wikipedia as pywikibot
+
+if __name__ == "__main__":
+    pywikibot.handleArgs(u"-log")
+    pywikibot.output(u"สคริปต์ล้างกระบะทรายเริ่มทำงาน ณ เวลา %s" % libdate.getTime())
+
+    site = pywikibot.getSite()
+    text = u"{{ทดลองเขียน}}<!-- กรุณาอย่าแก้ไขบรรทัดนี้ ขอบคุณครับ/ค่ะ -- Please leave this line as they are. Thank you! -->\n"
+
+    page = pywikibot.Page(site, u"วิกิพีเดีย:ทดลองเขียน")
+    page.put(text, u"ล้างหน้าอัตโนมัติด้วยบอต")
+    # all sanbox pages can be obtained from miscellaneous.sandboxPages
+
+    pywikibot.output(u"สคริปต์ล้างกระบะทรายหยุดทำงาน ณ เวลา %s" % libdate.getTime())
+    pywikibot.stopme()

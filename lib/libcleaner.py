@@ -55,6 +55,7 @@ def clean(s):
     s = re.sub(u"<references[ \t\r\f\v]*/[ \t\r\f\v]*>", u"{{รายการอ้างอิง}}", s, flags = re.MULTILINE)
     s = re.sub(u"\{\{[ \t\r\f\v]*Reflist[ \t\r\f\v]*", u"{{รายการอ้างอิง", s, flags = re.MULTILINE | re.IGNORECASE)
     s = re.sub(u"^(?![ \t\r\f\v]).*?$", consecutiveSpace, s, flags = re.MULTILINE)
+    s = re.sub(u"(?m)^(:+)\ +\{\|", u"\g<1>{|", s)
     return s
 
 if __name__ == "__main__":

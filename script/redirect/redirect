@@ -1,0 +1,9 @@
+#!/bin/bash
+
+cd "$(dirname $0)/../../config"
+file="$(pwd)/data.cfg"
+path="$(grep -o -P "(?<=PYWIKI: ).*" $file)"
+python "$path/redirect.py" both -api -moves
+python "$path/redirect.py" broken
+python "$path/redirect.py" double
+

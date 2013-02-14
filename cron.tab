@@ -4,7 +4,7 @@
 0 23 14 * * /home/nullzero/wp/wpmanager most_edits
 7 1 * * * /home/nullzero/wp/wpmanager redirect
 35 0 * * * /home/nullzero/wp/wpmanager update
-1 0 1 * * /home/nullzero/wp/wpmanager update_calendar
 7 15 */15 * * /home/nullzero/wp/wpmanager cleandead
 24 17 */15 * * /home/nullzero/wp/wpmanager star
 32 13 3 * * /home/nullzero/wp/wpmanager veryshort
+7 7 * * * /home/nullzero/wp/wpmanager unnecessary_redirect

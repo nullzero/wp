@@ -1,6 +1,7 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import sys, os, re, time, traceback, urllib, subprocess, datetime
+import sys, os, re, datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 try: from lib import preload
@@ -9,25 +10,16 @@ except:
     sys.exit()
 
 import query, userlib
-from lib import libdate, liblang, libstring, libgenerator, librevision, miscellaneous
 import wikipedia as pywikibot
 
 site = preload.site
-env = preload.env
 INF = 999999999
 
 pageMain = pywikibot.Page(site, u"วิกิพีเดีย:ที่สุดในวิกิพีเดียภาษาไทย")
 contentMain = pageMain.get()
 
 def firstContributor(title):
-    params = {
-        'action': 'query',
-        'prop': 'revisions',
-        'titles': title,
-        'rvprop': 'user',
-        'rvlimit': 5000,
-    }
-    name = query.GetData(params, site)['query']['pages'].itervalues().next()['revisions'][-1]['user']
+    name = pywikibot.Page(site, title).getCreator()[0]
     if userlib.User(site, name).isAnonymous(): return u"-"
     return u"[[User:%s|%s]]" % (name, name)
 

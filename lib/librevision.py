@@ -24,34 +24,3 @@ def getRevision(revid, prop):
     elif prop == 'content':
         params['rvprop'] = 'content'
         return query.GetData(params, site)['query']['pages'].itervalues().next()['revisions'][0]['*']
-
-def allContribute(pageName):
-    params = {
-        'action'   : 'query',
-        'prop'     : 'revisions',
-        'titles'   : pageName,
-        'rvprop'   : 'user|ids',
-        'rvlimit'  : 5000
-    }
-    return query.GetData(params, site)['query']['pages'].itervalues().next()['revisions']
-
-def revert(pageid, revid, summary, title):
-    params = {
-        'action': 'edit',
-        'pageid': pageid,
-        'undo'  : revid,
-        'summary': summary + preload.summarySuffix,
-        'token'  : site.getToken(),
-        'minor'  : 1,
-    }
-    
-    response, data = query.GetData(params, site, back_response = True)
-    
-    try:
-        if data['edit']['result'] == u"Success":
-            pywikibot.output(u"ย้อน %s สำเร็จ!" % title)
-        else:
-            raise Exception
-    except:
-        print response, data
-        pywikibot.output(u"ย้อน %s ไม่สำเร็จ" % title)
