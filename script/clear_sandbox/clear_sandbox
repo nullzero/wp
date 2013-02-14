@@ -10,7 +10,7 @@ except:
     sys.exit()
 
 from lib import libdate
-import wikipedia as pywikibot
+import pwikipedia as pywikibot
 
 if __name__ == "__main__":
     pywikibot.handleArgs(u"-log")

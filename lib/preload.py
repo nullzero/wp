@@ -129,13 +129,14 @@ except IOError:
     putData('SANDBOX', "โปรดใส่ชื่อหน้ากระบะทราย (ทดสอบการกระทำผู้ใช้ใหม่): ")
 
 env = loadConfig()
+sys.path.append(os.path.join(env['WORK'], "patch"))
 sys.path.append(env['PYWIKI'])
 
 if not os.path.exists(os.path.join(env['PYWIKI'], "user-config.py")):
     env = loadConfig()
 
 import wikipedia as pywikibot
-
+        
 site = pywikibot.getSite()
 
 if not site.loggedInAs(sysop = env['SYSOP']):
