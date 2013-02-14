@@ -130,7 +130,7 @@ sections_to_skip = {
     'ja': [u'脚注', u'脚注欄', u'脚注・出典', u'出典', u'注釈'],
     'zh': [u'參考文獻', u'参考文献', u'參考資料', u'参考资料', u'資料來源', u'资料来源',
            u'參見', u'参见', u'參閱', u'参阅'],
-    'th': [u'อ้างอิง', u'ดูเพิ่มเติม']
+    'th': [u'อ้างอิง', u'ดูเพิ่ม']
 }
 
 
@@ -260,16 +260,9 @@ def cut_section(text, sectC):
             return text[:start.start()]
     return text
 
-def existPage(pageName):
-    site = pywikibot.getSite()
-    try: pywikibot.Page(site, pageName).get()
-    except pywikibot.NoPage: return False
-    return True
-
 sandboxPages = []
 sandboxPages.append(u"วิกิพีเดีย:สอนการใช้งาน_(จัดรูปแบบ)/กระดาษทด")
 sandboxPages.append(u"วิกิพีเดีย:สอนการใช้งาน_(แหล่งข้อมูลอื่น)/กระดาษทด")
 sandboxPages.append(u"วิกิพีเดีย:สอนการใช้งาน_(แก้ไข)/กระดาษทด")
 sandboxPages.append(u"วิกิพีเดีย:สอนการใช้งาน_(วิกิพีเดียลิงก์)/กระดาษทด")
 sandboxPages.append(u"วิกิพีเดีย:ทดลองเขียน")
-
