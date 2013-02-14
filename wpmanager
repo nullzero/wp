@@ -2,8 +2,8 @@
 
 current_dir="$(dirname $0)"
 
-if test -e "${current_dir}/script/$1/$1.py"; then
-    path="${current_dir}/script/$1/$1.py"
+if test -e "${current_dir}/script/$1/$1"; then
+    path="${current_dir}/script/$1/$1"
     if test -z "$2"; then
         ./"$path"
     else
