@@ -12,7 +12,7 @@ run(){
     bot="$(ls ${current_dir}/script/$scriptname/'$'* | grep -o -P '(?<=/\$).*')"
     echo "ดำเนินการโดย $bot"
     cd bots/"$bot"
-    python ./../../pywikipedia/replace.py -page:User:Nullzerobot/status -regex "(?s).*" "$RANDOM" -summary:ลงเวลา
+    python ./../../pywikipedia/replace.py -page:User:Nullzerobot/status -regex "(?s)^.*$" "$RANDOM" -summary:ลงเวลา -always
     ./../../script/"$scriptname/$scriptname" "$@"
 }
 
