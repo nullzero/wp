@@ -66,7 +66,7 @@ def flush():
 
 def check(revision):
     page = revision[0]
-    pywikibot.output(u"check %s" % page.title())
+    pywikibot.output(u"check %s @ %s" % (page.title(), preload.getTime()))
     revid = revision[1]['revid']
     oldrevid = revision[1]['old_revid']
     if oldrevid == 0: contentold = u""
@@ -105,7 +105,6 @@ if __name__ == "__main__":
     for revision in gen:
         try:
             check(revision)
-            pywikibot.output(u"cmp %d %d" % (todaynum, datetime.datetime.today().day))
             if todaynum != datetime.datetime.today().day:
                 flush()
                 container = {}

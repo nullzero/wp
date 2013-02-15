@@ -12,10 +12,8 @@ except:
 import wikipedia as pywikibot
 import pagegenerators, catlib, userlib, category
 
-env = preload.env
-
 # constant
-USER = u"ผู้ใช้:Nullzerobot"
+USER = u"User:Nullzerobot"
 PAGEMAIN = USER + u"/บริการย้ายหมวดหมู่"
 PAGEPENDING = USER + u"/บริการย้ายหมวดหมู่/หมวดหมู่ที่รอการพิจารณา"
 PAGEREPORT =  USER + u"/รายงาน/บริการย้ายหมวดหมู่"
@@ -41,7 +39,7 @@ def domove(source, dest):
         return
         
     pageCat = pywikibot.Page(site, u"หมวดหมู่:" + source)
-    pageCat.put(u"{{bots|allow=" + env['USER'].decode("utf-8") + u"}}\n{{ลบ|บอตย้ายหมวดหมู่ไป[[:หมวดหมู่:" + dest + u"]] แล้ว}}", 
+    pageCat.put(u"{{bots|allow=Nullzerobot}}\n{{ลบ|บอตย้ายหมวดหมู่ไป[[:หมวดหมู่:" + dest + u"]] แล้ว}}", 
         u"ย้ายหมวดหมู่โดยบอต", force = True)
 
 def verify(name, flag):
@@ -162,7 +160,7 @@ def main():
 if __name__ == "__main__":
     pywikibot.handleArgs("-log")
     if(SIMULATE): pywikibot.handleArgs("-simulate")
-    lockfile = os.path.join(env['TMP'], LOCKFILE)
+    lockfile = os.path.join("/tmp", LOCKFILE)
     
     if os.path.exists(lockfile):
         pywikibot.output(u"มีการล็อกอยู่อยู่")
