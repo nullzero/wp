@@ -30,6 +30,7 @@ createuser(){
     ln -s ../../pywikipedia/families
     ln -s ../../pywikipedia/userinterfaces
     mv ../../pywikipedia/user-config.py .
+    python ../../pywikipedia/login.py
 }
 
 clearlog(){
