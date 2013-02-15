@@ -1,133 +1,116 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-DEBUG = False
-
-import sys, os, re, time, traceback, urllib, subprocess
+import sys, os, re, datetime, difflib
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-try: from lib import preload_notify
+try: from lib import preload
 except:
     print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
 
-import query, userlib
-from lib import libdate, liblang, libstring, libgenerator, librevision, miscellaneous
-import wikipedia as pywikibot
-
+import pwikipedia as pywikibot
 pywikibot.handleArgs(u"-user:Nullzerotest")
 
-startChecking = 1
-site = pywikibot.getSite()
-env = preload_notify.env
-insertDisamT = pywikibot.Page(site, u"User:Nullzerobot/ข้อความ/insert-disam").get()
+DEBUG = False
 
-def notify(user, page, link):
+startChecking = 1
+site = preload.site
+insertDisamT = None
+container = {}
+
+def notify(user, scontent):
     if user == u"JBot": return
     usertalk = pywikibot.Page(site, u"User talk:" + user)
     
     if not usertalk.exists():
-    pywikibot.output(u">>> ไม่มีหน้านี้มาก่อน - ไอพี ไม่เตือน")
-    return
-    
-    content = usertalk.get()
-    listold = re.findall(u"<!-- เริ่มลิงก์ -->(.*?)<!-- จบลิงก์ -->", content)
-    for linkold in listold:
-        if linkold == link:
-            pywikibot.output(u">>> แต่เคยแจ้งแล้ว เลิกการแจ้ง!")
-            return
+        pywikibot.output(u">>> ไม่มีหน้านี้มาก่อน - ไอพี ไม่เตือน")
+        return
     
     message = insertDisamT
+    message = message.replace(u"<!-- ลิงก์ -->", scontent)
     message = message.replace(u"<!-- ชื่อผู้ใช้ -->", user)
-    message = message.replace(u"<!-- หน้า -->", page)
-    message = message.replace(u"<!-- ลิงก์ -->", link)
+    message = message.replace(u"<!-- วันที่ -->", "%d/%d" % (datetime.datetime.today().day,
+        datetime.datetime.today().month))
     
     try:
-        usertalk.put(content + u"\n" + message + u" --~~~~", u"แจ้งใส่ลิงก์โยงไปยังหน้าแก้กำกวม")
-    except:
-        pywikibot.output(traceback.format_exc().decode("utf-8"))
-        return
-        
+        usertalk.put(usertalk.get() + u"\n\n" + message + u" --~~~~", u"แจ้งใส่ลิงก์โยงไปยังหน้าแก้กำกวม")
+    except: preload.error()
+    
     pywikibot.output(u">>> เรียบร้อย!")
 
-def check(revision):
-    newpage = False
-    try:
-        page = librevision.getRevision(revision[1]['revid'], 'diff')
-    except:
-        pywikibot.output(traceback.format_exc().decode("utf-8"))
-        return
-        
-    if DEBUG and (page['title'] != env['SANDBOX'].decode("utf-8")): return
-    
-    pywikibot.output(u"=== กำลังตรวจสอบหน้า %s @ %s โดย %s" % (page['title'], page['revisions'][0]['timestamp'], page['revisions'][0]['user']))
-    
-    """
-    ยกเลิกการตรวจสอบ: ผิดพลาด
-    """
-    try:
-        curpage = pywikibot.Page(site, page['title'])
-        content = curpage.get()
-    except:
-        pywikibot.output(u"!!! ไม่สามารถเรียกข้อมูลหน้าได้ ยกเลิกการตรวจสอบ")
-        pywikibot.output(traceback.format_exc().decode("utf-8"))
-        return
-    
-    if not page['revisions'][0]['diff']['from']:
-        pywikibot.output(u"หน้านี้เป็นหน้าใหม่!")
-        newpage = True
-        change = librevision.getRevision(revision[1]['revid'], 'content')
+def save(user, title, links):
+    print ">>> save", user, title
+    global container
+    if user in container:
+        if title in container[user]:
+            container[user][title] = container[user][title] | links
+        else:
+            container[user][title] = links
     else:
-        change = page['revisions'][0]['diff']['*']
+        container[user] = {}
+        container[user][title] = links
+
+def dict2str(d):
+    s = u""
+    for title in d:
+        s += u"; [[" + title + u"]]\n"
+        s += "".join(map(lambda x: u"* [[" + x + u"]]\n", list(d[title])))
+    return s
     
-    lines = change.splitlines()
-    addedLine = u""
-    
-    for line in lines:
-        line = line.strip()
-        if line.startswith(u'<td class="diff-addedline">') or newpage:
-            if not newpage:
-                line = re.sub(u"<td.*?>", u"", line)
-                line = re.sub(u"</td>", u"", line)
-                line = re.sub(u"<div>", u"", line)
-                line = re.sub(u"</div>", u"", line)
-                line = re.sub(u"<span.*?>", u"", line)
-                line = re.sub(u"</span>", u"", line)
-                line = re.sub(u"&lt;", u"<", line)
-                line = re.sub(u"&gt;", u">", line)
-            
-            addedLine += line.rstrip() + u"\n"
-    
-    links = re.findall(u"\[\[(.*?)(\|.*?)?\]\]", addedLine)
+def flush():
+    global insertDisamT
+    insertDisamT = pywikibot.Page(site, u"User:Nullzerobot/ข้อความ/insert-disam").get()
+    for user in container:
+        notify(user, dict2str(container[user]))
+
+def check(revision):
+    page = revision[0]
+    print "check ", page.title()
+    revid = revision[1]['revid']
+    oldrevid = revision[1]['old_revid']
+    if oldrevid == 0: contentold = u""
+    else: contentold = page.getOldVersion(oldrevid)
+    contentnew = page.get()
+    addedlinks = set(pywikibot.extractLinkedPages(contentnew, page)) - \
+        set(pywikibot.extractLinkedPages(contentold, page))
     
     disamlinks = []
     
-    for link in links:
-        if u":" in link[0]: continue
-        if link[0].startswith(u"#"): continue
+    for link in addedlinks:
+        if u":" in link.title(): continue
+        if link.title().startswith(u"#"): continue
         try:
-            dpage = pywikibot.Page(site, link[0])
-            if dpage.isRedirectPage(): dpage = dpage.getRedirectTarget()
-            if dpage.isDisambig(): disamlinks.append(link[0])
-        except: pywikibot.output(traceback.format_exc().decode("utf-8"))
+            if link.isRedirectPage(): link = link.getRedirectTarget()
+            if link.isDisambig(): disamlinks.append(link.title())
+        except: preload.error()
     
     if len(disamlinks) != 0:
-        pywikibot.output(u">>> พบลิงก์แก้กำกวม")
-        notify(page['revisions'][0]['user'], page['title'], u"* [[" + u"]]\n* [[".join(disamlinks) + u"]]")
+        save(revision[1]['user'], revision[1]['title'], set(disamlinks))
     
 if __name__ == "__main__":
     pywikibot.handleArgs("-log")
-    pywikibot.output(u"สคริปต์แจ้งโยงไปยังหน้าแก้กำกวมเริ่มทำงาน ณ เวลา %s" % libdate.getTime())
+    pywikibot.output(u"สคริปต์แจ้งโยงไปยังหน้าแก้กำกวมเริ่มทำงาน ณ เวลา %s" % preload.getTime())
     
     if len(sys.argv) > 1:
         if sys.argv[1] == "-d": DEBUG = True
         
-    gen = libgenerator.recentchanges(number = startChecking, namespace = "|".join([str(x) for x in xrange(0, 16, 2) if x != 2]), repeat = True)
+    gen = site.recentchanges(number = startChecking,
+            rcshow = ['!redirect', '!bot'],
+            namespace = "|".join([str(x) for x in xrange(0, 16, 2) if x != 2]), 
+            repeat = True,
+            returndict = True)
+            
+    todaynum = datetime.datetime.today().day
+    for revision in gen:
+        try:
+            check(revision)
+            if todaynum != datetime.datetime.today().day:
+                flush()
+                container = {}
+                todaynum = datetime.datetime.today().day
+        except:
+            preload.error()
     
-    try:
-        for revision in gen: check(revision)
-    except:
-        preload_notify.error()
-    
-    pywikibot.output(u"สคริปต์แจ้งโยงไปยังหน้าแก้กำกวมหยุดทำงาน ณ เวลา %s" % libdate.getTime())
+    pywikibot.output(u"สคริปต์แจ้งโยงไปยังหน้าแก้กำกวมหยุดทำงาน ณ เวลา %s" % preload.getTime())
     pywikibot.stopme()

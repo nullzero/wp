@@ -15,9 +15,7 @@ import wikipedia as pywikibot
 import pagegenerators
 
 site = preload.site
-    
 gen = pagegenerators.ReferringPageGenerator(pywikibot.Page(site, u"แม่แบบ:เพิ่งตาย"), onlyTemplateInclusion = True)
-
 pat = re.compile(ur"(?i)\{\{\s*(เพิ่งตาย|เพิ่งสิ้นพระชนม์|Recent death)\s*\}\}\s*")
 
 for page in gen:

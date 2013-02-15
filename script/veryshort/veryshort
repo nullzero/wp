@@ -9,14 +9,14 @@ except:
     print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
 
-from lib import libdate, libgenerator
+from lib import libgenerator
 import wikipedia as pywikibot
 
 site = pywikibot.getSite()
 
 if __name__ == "__main__":
     pywikibot.handleArgs(u"-log")
-    pywikibot.output(u"สคริปต์ลบป้ายสั้นมากเริ่มทำงาน ณ เวลา %s" % libdate.getTime())
+    pywikibot.output(u"สคริปต์ลบป้ายสั้นมากเริ่มทำงาน ณ เวลา %s" % preload.getTime())
     site = pywikibot.getSite()
     
     generator = libgenerator.CatGenerator(u'บทความที่มีเนื้อหาน้อยมาก')
@@ -41,5 +41,5 @@ if __name__ == "__main__":
             if content != original_content:
                 page.put(content, u"บทความมีความยาวพอควรแล้ว นำป้ายสั้นมากออก")
     
-    pywikibot.output(u"สคริปต์ลบป้ายสั้นมากหยุดทำงาน ณ เวลา %s" % libdate.getTime())
+    pywikibot.output(u"สคริปต์ลบป้ายสั้นมากหยุดทำงาน ณ เวลา %s" % preload.getTime())
     pywikibot.stopme()

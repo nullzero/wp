@@ -2,10 +2,6 @@
 
 current_dir="$(dirname $0)"
 
-if test "$1" == "-clean"; then
-    find "${current_dir}" -type f | grep -P "\.pyc$" | xargs rm
-elif test "$1" == "-gitrm"; then
-    git rm $(git ls-files --deleted)
 elif test "$1" == "-clearlog"; then
     file="$current_dir"/config/data.cfg
     basepath="$(grep -o -P "(?<=PYWIKI: ).*" $file)"

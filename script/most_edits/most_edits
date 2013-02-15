@@ -9,7 +9,6 @@ except:
     print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
 
-from lib import libdate
 import wikipedia as pywikibot
 import query
 
@@ -64,7 +63,7 @@ def dowrite(path, data):
     pywikibot.output(u"done!")
     
 def main():
-    pywikibot.output(u"สคริปต์ปรับปรุงสถิติผู้แก้ไขมากที่สุดเริ่มทำงาน ณ เวลา %s" % libdate.getTime())
+    pywikibot.output(u"สคริปต์ปรับปรุงสถิติผู้แก้ไขมากที่สุดเริ่มทำงาน ณ เวลา %s" % preload.getTime())
     includebot = []
     excludebot = []
 
@@ -106,7 +105,7 @@ def main():
     
     dowrite(PATH + BOTSUFFIX, includebot)
     dowrite(PATH, excludebot)
-    pywikibot.output(u"สคริปต์ปรับปรุงสถิติผู้แก้ไขมากที่สุดหยุดทำงาน ณ เวลา %s" % libdate.getTime())
+    pywikibot.output(u"สคริปต์ปรับปรุงสถิติผู้แก้ไขมากที่สุดหยุดทำงาน ณ เวลา %s" % preload.getTime())
 
 if __name__ == "__main__":
     try:

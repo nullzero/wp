@@ -1,10 +1,10 @@
-0 * * * * /home/nullzero/wp/wpmanager auto_move_cat
-30 */6 * * * /home/nullzero/wp/wpmanager clear_sandbox
-15 7 * * * /home/nullzero/wp/wpmanager uncategorize
-0 23 14 * * /home/nullzero/wp/wpmanager most_edits
-7 1 * * * /home/nullzero/wp/wpmanager redirect
-35 0 * * * /home/nullzero/wp/wpmanager update
-7 15 */15 * * /home/nullzero/wp/wpmanager cleandead
-24 17 */15 * * /home/nullzero/wp/wpmanager star
-32 13 3 * * /home/nullzero/wp/wpmanager veryshort
-7 7 * * * /home/nullzero/wp/wpmanager unnecessary_redirect
+0 * * * * /home/nullzero/wp/wpmanager run auto_move_cat
+7 15 */15 * * /home/nullzero/wp/wpmanager run cleandead
+30 */6 * * * /home/nullzero/wp/wpmanager run clear_sandbox
+0 23 14 * * /home/nullzero/wp/wpmanager run most_edits
+7 1 * * * /home/nullzero/wp/wpmanager run redirect
+24 17 */15 * * /home/nullzero/wp/wpmanager run star
+15 7 * * * /home/nullzero/wp/wpmanager run uncategorize
+#7 7 * * * /home/nullzero/wp/wpmanager run unnecessary_redirect
+35 0 * * * /home/nullzero/wp/wpmanager run update
+32 13 3 * * /home/nullzero/wp/wpmanager run veryshort

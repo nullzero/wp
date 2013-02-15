@@ -9,7 +9,7 @@ except:
     print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
 
-from lib import libdate, libcleaner, libgenerator
+from lib import libcleaner, libgenerator
 import wikipedia as pywikibot
 
 MAXN = 500
@@ -36,7 +36,7 @@ def dochange(original_content):
     p_rowspan = re.compile(ur"rowspan(\ )*=(\ )*\"(.*?)\"")
     tablelist = p_wikitable.findall(content)
     
-    keepcolumn = [([u"พ.ศ.", u"ปี", "ปีที่แสดง"], u"ปี พ.ศ.", const['strict']), 
+    keepcolumn = [([u"พ.ศ.", u"ปี", u"ปีที่แสดง"], u"ปี พ.ศ.", const['strict']), 
         ([u"ชื่อละคร", u"ละคร", u"ภาพยนตร์", u"ชื่อเรื่อง", u"ละครเวที", u"ภาพยนตร์เรื่อง", u"ละครเรื่อง"], u"เรื่อง", const['strict']),
         ([u"รับบท", u"บทบาท", u"บท", u"แสดงเป็น"], u"รับบทเป็น", const['strict']),
         ([u"หมายเหตุและรางวัล"], u"หมายเหตุ", const['nstrict']),

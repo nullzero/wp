@@ -13,31 +13,33 @@ run(){
     echo "ดำเนินการโดย $bot"
     cd bots/"$bot"
     ./../../script/"$scriptname/$scriptname" "$@"
-    echo "$>> รันสคริปต์เรียบร้อย"
 }
 
 createuser(){
     botname="$1"
-    
     if test -z "$botname"; then
         echo "!!! โปรดระบุชื่อบอต"
         exit
-        
+    fi
     cd pywikipedia
     python generate_user_files.py
-    mv user-config.py ../bots/"$botname"
     cd ../bots
     mkdir "$botname"
     cd "$botname"
     ln -s ../../pywikipedia/families
     ln -s ../../pywikipedia/userinterfaces
-    echo "$>> สร้างไอดีเรียบร้อย"
+    mv ../../pywikipedia/user-config.py .
 }
 
-setup(){
-    svn checkout http://svn.wikimedia.org/svnroot/pywikipedia/trunk/pywikipedia/ pywikipedia
-    echo "$>> ติดตั้งเรียบร้อย"
+clearlog(){
+    file="$current_dir"/config/data.cfg
+    basepath="$(grep -o -P "(?<=PYWIKI: ).*" $file)"
+    mkdir "${basepath}/logs/new"
+    mv "${basepath}/logs"/*.log "${basepath}/logs/new/"
+    mv "${basepath}/logs/old/" "${basepath}/logs/new/"
+    mv "${basepath}/logs/new/" "${basepath}/logs/old"
 }
+
 
 cd "$current_dir"
 mode="$1"
@@ -45,12 +47,27 @@ shift
 case "$mode" in
 "run")
     run "$@"
+    echo "$>> รันสคริปต์เรียบร้อย"
     ;;
 "create")
-    create "$@"
+    createuser "$@"
+    echo "$>> สร้างไอดีเรียบร้อย"
     ;;
 "setup")
-    setup
+    svn checkout http://svn.wikimedia.org/svnroot/pywikipedia/trunk/pywikipedia/ pywikipedia
+    echo "$>> ติดตั้งเรียบร้อย"
+    ;;
+"pyc")
+    find "${current_dir}" -type f | grep -P "\.pyc$" | xargs rm
+    echo "$>> ลบไฟล์ pyc"
+    ;;
+"git")
+    git rm $(git ls-files --deleted)
+    echo "$>> ลบไฟล์ gitrm"
+    ;;
+"clearlog")
+    clearlog
+    ;;
 *)
     echo "!!! พารามิเตอร์ไม่ถูกต้อง"
     ;;

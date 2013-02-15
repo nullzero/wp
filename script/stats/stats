@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import sys, os, re, datetime
+import sys, os, re
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 try: from lib import preload
@@ -78,7 +78,7 @@ def writetable(table, title):
         if table[i][1] == INF: table[i][1] = u"มาใหม่"
         table[i] = u" || ".join([unicode(x) for x in table[i]])
     contentMain = re.sub(u"(?<=<!-- เริ่มตาราง%s -->).*?(?=<!-- จบตาราง%s -->)" % (title, title),
-        u"".join(map(lambda x: u"\n|-\n| " + x, table)) + u"\n|}\n{{hatnote|ปรับปรุง %s}}\n" % datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        u"".join(map(lambda x: u"\n|-\n| " + x, table)) + u"\n|}\n{{hatnote|ปรับปรุง %s}}\n" % preload.getTime(),
         contentMain, flags = re.DOTALL)
 
 def flush():

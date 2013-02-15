@@ -16,7 +16,7 @@ site = preload.site
     
 if __name__ == "__main__":
     pywikibot.handleArgs("-log")
-    pywikibot.output(u"สคริปต์ปรับปรุงวันสำคัญเริ่มทำงาน ณ เวลา %s" % libdate.getTime())
+    pywikibot.output(u"สคริปต์ปรับปรุงวันสำคัญเริ่มทำงาน ณ เวลา %s" % preload.getTime())
     
     today = libdate.date.today()
     year = today.year + 543
@@ -77,5 +77,5 @@ if __name__ == "__main__":
     
     if page.get() != wcontent: page.put(wcontent, u"อัปเดตรายชื่อวันสำคัญโดยบอต")
         
-    pywikibot.output(u"สคริปต์ปรับปรุงวันสำคัญหยุดทำงาน ณ เวลา %s" % libdate.getTime())
+    pywikibot.output(u"สคริปต์ปรับปรุงวันสำคัญหยุดทำงาน ณ เวลา %s" % preload.getTime())
     pywikibot.stopme()

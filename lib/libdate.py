@@ -7,8 +7,6 @@ except:
     print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
 
-def getTime(): return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
 def wrapMonth(m):
     m -= 1
     if m < 0: m += 12
@@ -16,7 +14,8 @@ def wrapMonth(m):
     return m
 
 def weekdayThai(d):
-    return [u"วันจันทร์", u"วันอังคาร", u"วันพุธ", u"วันพฤหัสบดี", u"วันศุกร์", u"วันเสาร์", u"วันอาทิตย์"][d]
+    return map(lambda x: u"วัน" + x, 
+        [u"จันทร์", u"อังคาร", u"พุธ", u"พฤหัสบดี", u"ศุกร์", u"เสาร์", u"อาทิตย์"])[d]
 
 def monthEng(m):
     return [u"January", u"February", u"March", u"April", u"May", u"June", 

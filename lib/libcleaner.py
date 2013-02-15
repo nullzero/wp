@@ -8,8 +8,6 @@ except:
     print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
 
-env = preload.env
-
 from lib import liblang
 import wikipedia as pywikibot
 
@@ -57,7 +55,3 @@ def clean(s):
     s = re.sub(u"^(?![ \t\r\f\v]).*?$", consecutiveSpace, s, flags = re.MULTILINE)
     s = re.sub(u"(?m)^(:+)\ +\{\|", u"\g<1>{|", s)
     return s
-
-if __name__ == "__main__":
-    print clean(u"""[[_asd_asd]]a
-""")

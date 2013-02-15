@@ -9,7 +9,6 @@ except:
     print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
 
-from lib import libdate
 import wikipedia as pywikibot
 import pagegenerators, catlib, userlib, category
 
@@ -69,7 +68,7 @@ def catempty(title, flag):
 
 def main():
     flag = False
-    pywikibot.output(u"สคริปต์ย้ายหมวดหมู่เริ่มทำงาน ณ เวลา %s" % libdate.getTime())
+    pywikibot.output(u"สคริปต์ย้ายหมวดหมู่เริ่มทำงาน ณ เวลา %s" % preload.getTime())
     
     if (len(sys.argv) > 1) and (sys.argv[1] == FLUSHPENDING):
         pywikibot.output(u"ย้ายหน้าที่รอพิจารณา")
@@ -89,7 +88,7 @@ def main():
         return
     
     summary = u"ย้ายหมวดหมู่ ณ เวลา "
-    pageMain.put(pre + u"!! เสนอโดย" + SUFFIX, u"เริ่ม" + summary + libdate.getTime())
+    pageMain.put(pre + u"!! เสนอโดย" + SUFFIX, u"เริ่ม" + summary + preload.getTime())
     
     text = post
 
@@ -122,7 +121,7 @@ def main():
             isMove = True
             domove(vfrom, vto)
             line += u" || "
-            line += libdate.getTime()
+            line += preload.getTime()
             line += u"\n"
             report += line
         else:
@@ -149,16 +148,16 @@ def main():
         text = pageReport.get(get_redirect = True)
         text = p_end.sub(u"", text, 1)
         text += report
-        pageReport.put(text, summary + libdate.getTime())
+        pageReport.put(text, summary + preload.getTime())
 
     if isPend:
         pagePending = pywikibot.Page(site, PAGEPENDING)
         text = pagePending.get(get_redirect = True)
         text = p_end.sub(u"", text, 1)
         text += pending
-        pagePending.put(text, summary + libdate.getTime())
+        pagePending.put(text, summary + preload.getTime())
         
-    pywikibot.output(u"สคริปต์ย้ายหมวดหมู่หยุดทำงาน ณ เวลา %s" % libdate.getTime())
+    pywikibot.output(u"สคริปต์ย้ายหมวดหมู่หยุดทำงาน ณ เวลา %s" % preload.getTime())
 
 if __name__ == "__main__":
     pywikibot.handleArgs("-log")

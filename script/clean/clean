@@ -1,0 +1,28 @@
+#!/usr/bin/python
+# -*- coding: utf-8  -*-
+
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+try: from lib import preload
+except:
+    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
+    sys.exit()
+
+import pwikipedia as pywikibot
+from lib import libcleaner
+
+site = preload.site
+
+def debug():
+    print libcleaner.clean(u"""[[_asd_asd]]a
+""")
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        pagename = sys.argv[1].decode("utf-8")
+        page = pywikibot.Page(site, pagename)
+        page.put(libcleaner.clean(page.get()), u"เก็บกวาด")
+    else:
+        debug()
+
