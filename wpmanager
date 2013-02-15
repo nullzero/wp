@@ -17,7 +17,7 @@ run(){
     echo "ดำเนินการโดย $bot"
     cd bots/"$bot"
     for last; do true; done
-    (! test "$last" == "debug") && python ./../../pywikipedia/replace.py -page:User:Nullzerobot/status -regex "(?s)^.*$" "$RANDOM" -summary:ลงเวลา -always
+    (test "$last" == "_timestamp_") && python ./../../pywikipedia/replace.py -page:User:Nullzerobot/status -regex "(?s)^.*$" "$RANDOM" -summary:ลงเวลา -always
     ./../../script/"$scriptname/$scriptname" "$@"
 }
 
@@ -52,8 +52,8 @@ cd "$current_dir"
 mode="$1"
 shift
 case "$mode" in
-"debug" | "d")
-    run "$@" "debug"
+"ts")
+    run "$@" "_timestamp_"
     echo "$>> รันสคริปต์เรียบร้อย"
     ;;
 "run" | "r")
