@@ -1,0 +1,49 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import sys, os, re
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+try: from lib import preload
+except:
+    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
+    sys.exit()
+
+import pwikipedia as pywikibot
+from random import shuffle
+
+site = preload.site
+
+def getlink(page, lim, reqen = False):
+    content = page.get()
+    content = content.replace(u"'''", u"")
+    candidates = []
+    regex = ur"(?m)^[\*\#]+\s*\[\[(?!:en:)(.*?)(?:\|.*?)?\]\]"
+    if reqen: regex += ur".*\[\[(:en:.*?)\]\]"
+    for link in re.finditer(regex, content):
+        if reqen: candidates.append((link.group(1), link.group(2)))
+        else: candidates.append((link.group(1)))
+    shuffle(candidates)
+    count = 0
+    out = []
+    for link in candidates:
+        if reqen: link, enlink = link
+        if not pywikibot.Page(site, link).exists():
+            if reqen:
+                out.append(u"[[%s]][[%s|^]]" % (link, enlink))
+            else:
+                out.append(u"[[%s]]" % (link))
+            count += 1
+        if count == lim: break
+    return out
+
+pagewrite = pywikibot.Page(site, u"แม่แบบ:ปรับปรุงล่าสุด/บทความที่ต้องการ")
+#pagewrite = pywikibot.Page(site, u"User:Nullzero/กระบะทราย5")
+content = pagewrite.get()
+s = []
+s += getlink(pywikibot.Page(site, u"วิกิพีเดีย:บทความที่ต้องการ"), 2, reqen = True)
+s += getlink(pywikibot.Page(site, u"วิกิพีเดีย:รายชื่อบทความที่วิกิพีเดียทุกภาษาควรมี"), 2)
+for cnt, i in enumerate(s): content = re.sub(u"(?m)(?<=^0%d --> ).*(?= <!--$)" % (cnt + 1), i, content)
+print content
+pagewrite.put(content, u"ปรับปรุงรายการ")
+pywikibot.stopme()

@@ -40,7 +40,7 @@ def notify(user, scontent):
     pywikibot.output(u">>> เรียบร้อย!")
 
 def save(user, title, links):
-    print ">>> save", user, title
+    pywikibot.output(u">>> save %s %s" % (user, title))
     global container
     if user in container:
         if title in container[user]:
@@ -66,7 +66,7 @@ def flush():
 
 def check(revision):
     page = revision[0]
-    print "check ", page.title()
+    pywikibot.output(u"check %s" % page.title())
     revid = revision[1]['revid']
     oldrevid = revision[1]['old_revid']
     if oldrevid == 0: contentold = u""
@@ -101,14 +101,15 @@ if __name__ == "__main__":
             repeat = True,
             returndict = True)
             
-    todaynum = datetime.datetime.today().day
+    todaynum = datetime.datetime.today().hour
     for revision in gen:
         try:
             check(revision)
-            if todaynum != datetime.datetime.today().day:
+            pywikibot.output(u"cmp %d %d" % (todaynum, datetime.datetime.today().hour))
+            if todaynum != datetime.datetime.today().hour:
                 flush()
                 container = {}
-                todaynum = datetime.datetime.today().day
+                todaynum = datetime.datetime.today().hour
         except:
             preload.error()
     

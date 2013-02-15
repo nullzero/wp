@@ -10,9 +10,14 @@ run(){
         exit
     fi
     bot="$(ls ${current_dir}/script/$scriptname/'$'* | grep -o -P '(?<=/\$).*')"
+    if test -z "$bot"; then
+        echo "!!! ไม่มีข้อมูลบอต"
+        exit
+    fi
     echo "ดำเนินการโดย $bot"
     cd bots/"$bot"
-    python ./../../pywikipedia/replace.py -page:User:Nullzerobot/status -regex "(?s)^.*$" "$RANDOM" -summary:ลงเวลา -always
+    for last; do true; done
+    (! test "$last" == "debug") && python ./../../pywikipedia/replace.py -page:User:Nullzerobot/status -regex "(?s)^.*$" "$RANDOM" -summary:ลงเวลา -always
     ./../../script/"$scriptname/$scriptname" "$@"
 }
 
@@ -47,15 +52,19 @@ cd "$current_dir"
 mode="$1"
 shift
 case "$mode" in
-"run")
+"debug" | "d")
+    run "$@" "debug"
+    echo "$>> รันสคริปต์เรียบร้อย"
+    ;;
+"run" | "r")
     run "$@"
     echo "$>> รันสคริปต์เรียบร้อย"
     ;;
-"create")
+"create" | "c")
     createuser "$@"
     echo "$>> สร้างไอดีเรียบร้อย"
     ;;
-"setup")
+"setup" | "s")
     svn checkout http://svn.wikimedia.org/svnroot/pywikipedia/trunk/pywikipedia/ pywikipedia
     echo "$>> ติดตั้งเรียบร้อย"
     ;;
@@ -67,7 +76,7 @@ case "$mode" in
     git rm $(git ls-files --deleted)
     echo "$>> ลบไฟล์ gitrm"
     ;;
-"clearlog")
+"log")
     clearlog
     ;;
 *)
