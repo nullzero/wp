@@ -9,13 +9,13 @@ try: import wikipedia as pywikibot
 except:
     print traceback.format_exc()
     sys.exit()
-    
-site = pywikibot.getSite()
-
-summarySuffix = u" หากผิดพลาดโปรดแจ้ง[[คุยกับผู้ใช้:Nullzero|ที่นี่]]"
 
 def error(): pywikibot.output(traceback.format_exc().decode("utf-8"))
 def getTime(): return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+site = pywikibot.getSite()
+
+summarySuffix = u" หากผิดพลาดโปรดแจ้ง[[User talk:Nullzero|ที่นี่]]"
 
 """
 def simplifyPath(path):
