@@ -101,15 +101,15 @@ if __name__ == "__main__":
             repeat = True,
             returndict = True)
             
-    todaynum = datetime.datetime.today().hour
+    todaynum = datetime.datetime.today().day
     for revision in gen:
         try:
             check(revision)
-            pywikibot.output(u"cmp %d %d" % (todaynum, datetime.datetime.today().hour))
-            if todaynum != datetime.datetime.today().hour:
+            pywikibot.output(u"cmp %d %d" % (todaynum, datetime.datetime.today().day))
+            if todaynum != datetime.datetime.today().day:
                 flush()
                 container = {}
-                todaynum = datetime.datetime.today().hour
+                todaynum = datetime.datetime.today().day
         except:
             preload.error()
     

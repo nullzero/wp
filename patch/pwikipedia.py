@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import sys, os
+import sys, os, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 try: from lib import preload
@@ -10,31 +10,11 @@ except:
     
 from wikipedia import *
 
-def linkedPages(self, withImageLinks=False):
-    return extractLinkedPages(self.get(get_redirect=True), self, withImageLinks)
-
-def getRevision(self, revid):
-    params = {
-        'action'   : 'query',
-        'prop'     : 'revisions',
-        'revids'   : revid,
-    }
-    return Page(self, query.GetData(params, self)['query']['pages'].itervalues().next()['title'])
-
-Page.linkedPages = linkedPages
-Site.getRevision = getRevision
+"""
+linkedPages ============================================================
+"""
 
 def extractLinkedPages(content, page, withImageLinks=False):
-    """Return a list of Pages that this Page links to.
-
-    Only returns pages from "normal" internal links. Category links are
-    omitted unless prefixed with ":". Image links are omitted when parameter
-    withImageLinks is False. Embedded templates are omitted (but links
-    within them are returned). All interwiki and external links are omitted.
-
-    @param withImageLinks: include Image links
-    @return: a list of Page objects.
-    """
     result = []
     try:
         thistxt = removeLanguageLinks(content,
@@ -103,3 +83,77 @@ def extractLinkedPages(content, page, withImageLinks=False):
             if page.sectionFreeTitle() and page not in result:
                 result.append(page)
     return result
+
+def linkedPages(self, withImageLinks=False):
+    return extractLinkedPages(self.get(get_redirect=True), self, withImageLinks)
+
+Page.linkedPages = linkedPages
+
+"""
+getRevision ============================================================
+"""
+
+def getRevision(self, revid):
+    params = {
+        'action'   : 'query',
+        'prop'     : 'revisions',
+        'revids'   : revid,
+    }
+    return Page(self, query.GetData(params, self)['query']['pages'].itervalues().next()['title'])
+    
+Site.getRevision = getRevision
+
+"""
+recentchanges ==========================================================
+"""
+
+def recentchanges(self, number=100, rcstart=None, rcend=None, rcshow=None,
+                  rcdir='older', rctype='edit|new', namespace=None,
+                  includeredirects=True, repeat=False, user=None,
+                  returndict=False):
+    if rctype is None:
+        rctype = 'edit|new'
+    params = {
+        'action'    : 'query',
+        'list'      : 'recentchanges',
+        'rcdir'     : rcdir,
+        'rctype'    : rctype,
+        'rcprop'    : ['user', 'comment', 'timestamp', 'title', 'ids',
+                       'loginfo', 'sizes'], #', 'flags', 'redirect', 'patrolled'],
+        'rcnamespace' : namespace,
+        'rclimit'   : int(number),
+        }
+    if user: params['rcuser'] = user
+    if rcstart: params['rcstart'] = rcstart
+    if rcend: params['rcend'] = rcend
+    if rcshow: params['rcshow'] = rcshow
+    if rctype: params['rctype'] = rctype
+
+    seen = set()
+    while True:
+        data = query.GetData(params, self)
+        if 'error' in data:
+            raise RuntimeError('%s' % data['error'])
+        try:
+            rcData = data['query']['recentchanges']
+        except KeyError:
+            raise ServerError("The APIs don't return data, the site may be down")
+
+        for i in rcData:
+            if i['revid'] not in seen:
+                seen.add(i['revid'])
+                page = Page(self, i['title'], defaultNamespace=i['ns'])
+                if 'comment' in i:
+                    page._comment = i['comment']
+                if returndict:
+                    yield page, i
+                else:
+                    comment = u''
+                    if 'comment' in i:
+                        comment = i['comment']
+                    yield page, i['timestamp'], i['newlen'], True, i['user'], comment
+        if not repeat:
+            break
+        time.sleep(10)
+
+Site.recentchanges = recentchanges
