@@ -11,37 +11,40 @@ except:
     print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
 
-import wikipedia as pywikibot
-import pagegenerators
+import pwikipedia as pywikibot, pagegenerators
 
-site = preload.site
-gen = pagegenerators.ReferringPageGenerator(pywikibot.Page(site, u"แม่แบบ:เพิ่งตาย"), onlyTemplateInclusion = True)
-pat = re.compile(ur"(?i)\{\{\s*(เพิ่งตาย|เพิ่งสิ้นพระชนม์|Recent death)\s*\}\}\s*")
+def main():
+    gen = pagegenerators.ReferringPageGenerator(pywikibot.Page(site, u"แม่แบบ:เพิ่งตาย"), onlyTemplateInclusion = True)
+    pat = re.compile(ur"(?i)\{\{\s*(เพิ่งตาย|เพิ่งสิ้นพระชนม์|Recent death)\s*\}\}\s*")
 
-for page in gen:
-    print ">>>", page.title()
-    history = page.getVersionHistory()
-    oldversion = page.getOldVersion(history[0][0])
-    doerase = False
-    found = False
-    for cntversion, version in enumerate(history):
-        if cntversion == 0: continue
-        newversion = oldversion
-        oldversion = page.getOldVersion(version[0])
-        dobj = difflib.SequenceMatcher(a = oldversion, b = newversion)
-        print "oldversion =", version[0]
-        for t in dobj.get_opcodes():
-            if t[0] == "insert":
-                if pat.search(newversion[t[3]:t[4]]) is not None:
-                    found = True
-                    dateadded = datetime.strptime(str(history[cntversion - 1][1]), '%Y-%m-%dT%H:%M:%SZ')
-                    datenow = datetime.today()
-                    dat = relativedelta.relativedelta(datenow, dateadded)
-                    print dat
-                    if dat.days > 15 or dat.month > 0 or dat.year > 0: doerase = True
-                    break
-        if found: break
-    if doerase:
-        page.put(pat.sub("", page.get()), u"ลบแม่แบบเพิ่งตายออก")
+    for page in gen:
+        pywikibot.output(u">>> %s" % page.title())
+        history = page.getVersionHistory()
+        oldversion = page.getOldVersion(history[0][0])
+        doerase = False
+        found = False
+        for cntversion, version in enumerate(history):
+            if cntversion == 0: continue
+            newversion = oldversion
+            oldversion = page.getOldVersion(version[0])
+            dobj = difflib.SequenceMatcher(a = oldversion, b = newversion)
+            pywikibot.output(u"oldversion = %s" % version[0])
+            for t in dobj.get_opcodes():
+                if t[0] == "insert":
+                    if pat.search(newversion[t[3]:t[4]]) is not None:
+                        found = True
+                        dateadded = datetime.strptime(str(history[cntversion - 1][1]), '%Y-%m-%dT%H:%M:%SZ')
+                        datenow = datetime.today()
+                        dat = relativedelta.relativedelta(datenow, dateadded)
+                        pywikibot.output(str(dat))
+                        if dat.days > 15 or dat.month > 0 or dat.year > 0: doerase = True
+                        break
+            if found: break
+        if doerase:
+            page.put(pat.sub("", page.get()), u"ลบแม่แบบเพิ่งตายออก")
 
-pywikibot.stopme()
+if __name__ == "__main__":
+    args, site = preload.pre(u"ลบแม่แบบเพิ่งตายออก", lock = True)
+    try: main()
+    except: preload.posterror()
+    preload.post()

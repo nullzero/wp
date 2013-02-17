@@ -9,8 +9,7 @@ except:
     print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
 
-import wikipedia as pywikibot
-import pagegenerators, catlib, userlib, category
+import pwikipedia as pywikibot, pagegenerators, catlib, userlib, category
 
 # constant
 USER = u"User:Nullzerobot"
@@ -21,11 +20,8 @@ SIMULATE = False
 VERIFYEDITCOUNT = 50
 VERIFYTIME = 300000000
 DONOTMOVE = False
-FLUSHPENDING = "-pending"
-LOCKFILE = "movecat.lock"
+FLUSHPENDING = u"-pending"
 # end constant
-
-site = pywikibot.getSite()
 
 def domove(source, dest):
     pywikibot.output(u"ย้ายจาก " + source + " ไปยัง " + dest)
@@ -66,9 +62,8 @@ def catempty(title, flag):
 
 def main():
     flag = False
-    pywikibot.output(u"สคริปต์ย้ายหมวดหมู่เริ่มทำงาน ณ เวลา %s" % preload.getTime())
     
-    if (len(sys.argv) > 1) and (sys.argv[1] == FLUSHPENDING):
+    if FLUSHPENDING in args:
         pywikibot.output(u"ย้ายหน้าที่รอพิจารณา")
         flag = True
         pageprocess = PAGEPENDING
@@ -78,7 +73,7 @@ def main():
         SUFFIX = u"\n|}\n\n{{/หมวดหมู่ที่รอการพิจารณา}}"
     
     pageMain = pywikibot.Page(site, pageprocess)
-    text = pageMain.get(get_redirect = True)
+    text = pageMain.get()
     pre, post = text.split(u"!! เสนอโดย")
     
     if SUFFIX.strip() == post.strip():
@@ -154,27 +149,9 @@ def main():
         text = p_end.sub(u"", text, 1)
         text += pending
         pagePending.put(text, summary + preload.getTime())
-        
-    pywikibot.output(u"สคริปต์ย้ายหมวดหมู่หยุดทำงาน ณ เวลา %s" % preload.getTime())
 
 if __name__ == "__main__":
-    pywikibot.handleArgs("-log")
-    if(SIMULATE): pywikibot.handleArgs("-simulate")
-    lockfile = os.path.join("/tmp", LOCKFILE)
-    
-    if os.path.exists(lockfile):
-        pywikibot.output(u"มีการล็อกอยู่อยู่")
-        pywikibot.stopme()
-        sys.exit()
-    
-    open(lockfile, 'w').close() 
-    
-    try:
-        main()
-    except:
-        preload.error()
-        sys.exit()
-        
-    try: os.remove(lockfile)
-    except: pywikibot.output(u"ลบไฟล์ล็อกไม่ได้")
-    pywikibot.stopme()
+    args, site = preload.pre(u"ย้ายหมวดหมู่อัตโนมัติ", lock = True)
+    try: main()
+    except: preload.posterror()
+    preload.post()

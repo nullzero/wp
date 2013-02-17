@@ -12,9 +12,8 @@ except:
 import pwikipedia as pywikibot
 from random import shuffle
 
-site = preload.site
-
 def getlink(page, lim, reqen = False):
+    page = pywikibot.Page(site, page)
     content = page.get()
     content = content.replace(u"'''", u"")
     candidates = []
@@ -37,13 +36,19 @@ def getlink(page, lim, reqen = False):
         if count == lim: break
     return out
 
-pagewrite = pywikibot.Page(site, u"แม่แบบ:ปรับปรุงล่าสุด/บทความที่ต้องการ")
-#pagewrite = pywikibot.Page(site, u"User:Nullzero/กระบะทราย5")
-content = pagewrite.get()
-s = []
-s += getlink(pywikibot.Page(site, u"วิกิพีเดีย:บทความที่ต้องการ"), 2, reqen = True)
-s += getlink(pywikibot.Page(site, u"วิกิพีเดีย:รายชื่อบทความที่วิกิพีเดียทุกภาษาควรมี"), 2)
-for cnt, i in enumerate(s): content = re.sub(u"(?m)(?<=^0%d --> ).*(?= <!--$)" % (cnt + 1), i, content)
-print content
-pagewrite.put(content, u"ปรับปรุงรายการ")
-pywikibot.stopme()
+def main():
+    pagewrite = pywikibot.Page(site, u"แม่แบบ:ปรับปรุงล่าสุด/บทความที่ต้องการ")
+    content = pagewrite.get()
+    patlink = re.compile(ur"(?m)(?<=^--> )\[\[.*\]\](?= <!--$)")
+    numlinks = len(patlink.findall(content))
+    s = []
+    s += getlink(u"วิกิพีเดีย:บทความที่ต้องการ", numlinks // 2, reqen = True)
+    s += getlink(u"วิกิพีเดีย:รายชื่อบทความที่วิกิพีเดียทุกภาษาควรมี", numlinks - (numlinks // 2))
+    for i in s: content = patlink.sub(i, content)
+    pagewrite.put(content, u"ปรับปรุงรายการ")
+
+if __name__ == "__main__":
+    args, site = preload.pre(u"ปรับปรุงรายการบทความที่ต้องการ", lock = True)
+    try: main()
+    except: preload.posterror()
+    preload.post()

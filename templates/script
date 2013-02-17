@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# -*- coding: utf-8  -*-
+# -*- coding: utf-8 -*-
 
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -10,22 +10,12 @@ except:
     sys.exit()
 
 import pwikipedia as pywikibot
-from lib import libcleaner
-
-def debug():
-    print libcleaner.clean(u"""[[_asd_asd]]a
-""")
 
 def main():
-    if args:
-        for pagename in args:
-            page = pywikibot.Page(site, pagename)
-            page.put(libcleaner.clean(page.get()), u"เก็บกวาด")
-    else:
-        debug()
+    NotImplemented
 
 if __name__ == "__main__":
-    args, site = preload.pre(u"เก็บกวาด")
+    args, site = preload.pre(NotImplemented, lock = True)
     try: main()
     except: preload.posterror()
     preload.post()

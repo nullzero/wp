@@ -9,18 +9,15 @@ except:
     print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
 
-import wikipedia as pywikibot
-import query
+import pwikipedia as pywikibot, query
+from lib import libdata
 
 # constant
-LIMIT = 500
 NUMQUERY = '5000'
-CONST = 50
 PATH = u"วิกิพีเดีย:รายชื่อชาววิกิพีเดียที่แก้ไขมากที่สุด_500_อันดับ"
 BOTSUFFIX = u"_(รวมบอต)"
 # end constant
 
-site = pywikibot.getSite()
 pbot = re.compile(u"^(.*(บอต|bot)|(บอต|bot).*)$", re.IGNORECASE)
 
 def isbot(data):
@@ -38,7 +35,7 @@ def trimbot(data):
     return appendlist
 
 def dowrite(path, data):
-    puttext = u"ปรับปรุงล่าสุด %s\n\n{{/begin|500}}\n" % datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    puttext = u"ปรับปรุงล่าสุด %s\n\n{{/begin|500}}\n" % preload.getTime()
     cnt = 1
     
     for i in data:
@@ -63,9 +60,8 @@ def dowrite(path, data):
     pywikibot.output(u"done!")
     
 def main():
-    pywikibot.output(u"สคริปต์ปรับปรุงสถิติผู้แก้ไขมากที่สุดเริ่มทำงาน ณ เวลา %s" % preload.getTime())
-    includebot = []
-    excludebot = []
+    includelist = libdata.LimitedSortedList(lambda a, b: b['editcount'] - a['editcount'])
+    excludelist = libdata.LimitedSortedList(lambda a, b: b['editcount'] - a['editcount'])
 
     params = {
         'action'  : 'query',
@@ -74,42 +70,22 @@ def main():
         'auprop'  : 'editcount|groups',
     }
     
-    loop = 0
-        
     while True:
         try: getdata = query.GetData(params, site)
         except: break
-            
-        includebot += getdata['query']['allusers']
-        excludebot += trimbot(getdata['query']['allusers'])
+        pywikibot.output(getdata['query']['allusers'][0]['name'])
         
-        pywikibot.output("%d | %s" % (loop, getdata['query']['allusers'][0]['name']))
-        
-        loop += 1
+        includelist.concat(getdata['query']['allusers'])
+        excludelist.concat(trimbot(getdata['query']['allusers']))
         
         try: params['aufrom'] = getdata['query-continue']['allusers']['aufrom']
         except: break
-        
-        if loop % CONST == 0:
-            includebot.sort(key = lambda datall: int(datall['editcount']), reverse = True)
-            excludebot.sort(key = lambda datall: int(datall['editcount']), reverse = True)
-            
-            del includebot[LIMIT:]
-            del excludebot[LIMIT:]
-            
-    includebot.sort(key = lambda datall: int(datall['editcount']), reverse = True)
-    excludebot.sort(key = lambda datall: int(datall['editcount']), reverse = True)
     
-    del includebot[LIMIT:]
-    del excludebot[LIMIT:]
-    
-    dowrite(PATH + BOTSUFFIX, includebot)
-    dowrite(PATH, excludebot)
-    pywikibot.output(u"สคริปต์ปรับปรุงสถิติผู้แก้ไขมากที่สุดหยุดทำงาน ณ เวลา %s" % preload.getTime())
+    dowrite(PATH + BOTSUFFIX, includelist.get()[:500])
+    dowrite(PATH, excludelist.get()[:500])
 
 if __name__ == "__main__":
-    try:
-        pywikibot.handleArgs(u"-log")
-        main()
-    finally:
-        pywikibot.stopme()
+    args, site = preload.pre(u"ปรับปรุงสถิติผู้แก้ไขมากสุด", lock = True)
+    try: main()
+    except: preload.posterror()
+    preload.post()

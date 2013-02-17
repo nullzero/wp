@@ -10,36 +10,31 @@ except:
     sys.exit()
 
 from lib import libgenerator
-import wikipedia as pywikibot
+import pwikipedia as pywikibot
 
-site = pywikibot.getSite()
-
-if __name__ == "__main__":
-    pywikibot.handleArgs(u"-log")
-    pywikibot.output(u"สคริปต์ลบป้ายสั้นมากเริ่มทำงาน ณ เวลา %s" % preload.getTime())
-    site = pywikibot.getSite()
-    
-    generator = libgenerator.CatGenerator(u'บทความที่มีเนื้อหาน้อยมาก')
-    
-    for page in generator:
+def main():
+    for page in libgenerator.CatGenerator(u"บทความที่มีเนื้อหาน้อยมาก"):
         original_content = page.get(get_redirect = True)
         content = original_content
         content = pywikibot.removeCategoryLinks(content)
         content = pywikibot.removeLanguageLinks(content)
         content = re.sub(u"\s+", u" ", content)
         while True:
-            newcontent = re.sub("\{\{(?:(?!\{\{|\}\}).)*\}\}", u"", content, flags = re.DOTALL)
+            newcontent = re.sub(ur"\{\{(?:(?!\{\{|\}\}).)*\}\}", u"", content, flags = re.DOTALL)
             if content == newcontent: break
             content = newcontent
-        content = re.sub("\{\|.*?\|\}", u"", content, flags = re.DOTALL)
-        content = re.sub("<ref.*?</ref>", u"", content, flags = re.DOTALL)
-        content = re.sub("(?<!\[)\[(?!\[).*?\]", u"", content, flags = re.DOTALL)
+        content = re.sub(ur"\{\|.*?\|\}", u"", content, flags = re.DOTALL)
+        content = re.sub(ur"<ref.*?</ref>", u"", content, flags = re.DOTALL)
+        content = re.sub(ur"(?<!\[)\[(?!\[).*?\]", u"", content, flags = re.DOTALL)
         pywikibot.output(u"%s : %d" % (page.title(), len(content)))
         if len(content) >= 1000:
             pywikibot.output(u">>> ยาวแล้ว")
             content = original_content.replace(u"{{สั้นมาก}}", u"")
             if content != original_content:
                 page.put(content, u"บทความมีความยาวพอควรแล้ว นำป้ายสั้นมากออก")
-    
-    pywikibot.output(u"สคริปต์ลบป้ายสั้นมากหยุดทำงาน ณ เวลา %s" % preload.getTime())
-    pywikibot.stopme()
+
+if __name__ == "__main__":
+    args, site = preload.pre(u"ลบป้ายสั้นมาก", lock = True)
+    try: main()
+    except: preload.posterror()
+    preload.post()

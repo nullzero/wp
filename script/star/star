@@ -10,22 +10,19 @@ except:
     sys.exit()
 
 from lib import libcleaner, libgenerator
-import wikipedia as pywikibot
-
-MAXN = 500
-
-site = pywikibot.getSite()
+import pwikipedia as pywikibot
 
 const = {
     'strict' : 1,
     'nstrict' : 2,
+    'n' : 500,
 }
 
 def extractHeader(s):
     s = s.strip()
-    res = re.search("\|(.*)", s)
+    res = re.search(ur"\|(.*)", s)
     if res is not None: s = res.group(1).strip()
-    res = re.search("\[\[(.*?)\]\]", s)
+    res = re.search(ur"\[\[(.*?)\]\]", s)
     if res is not None: s = res.group(1).strip()
     return s
 
@@ -45,9 +42,9 @@ def dochange(original_content):
     for table in tablelist:
         try:
             column = []
-            stable = [[None for i in range(MAXN)] for j in range(MAXN)]
-            lock = [[False for i in range(MAXN)] for j in range(MAXN)]
-            mark = [None for i in range(MAXN)]
+            stable = [[None for i in range(const['n'])] for j in range(const['n'])]
+            lock = [[False for i in range(const['n'])] for j in range(const['n'])]
+            mark = [None for i in range(const['n'])]
             skipThisTable = False
             startOperation = False
             pre, post = content.split(table)
@@ -126,29 +123,22 @@ def dochange(original_content):
     content = libcleaner.clean(content)
     return content
 
-if __name__ == "__main__":
-    pywikibot.handleArgs(u"-log")
-    
-    if len(sys.argv) > 1:
-        pagename = sys.argv[1]
-        gen = [pywikibot.Page(pywikibot.getSite(), pagename.decode("utf-8"))]
-    else:
-        gen = libgenerator.CatGenerator(u"นักแสดงไทย")
-    
-    always = False
-    
+def main():
+    if args: gen = [pywikibot.Page(site, pagename) for pagename in args]
+    else: gen = libgenerator.CatGenerator(u"นักแสดงไทย")
     for page in gen:
         pywikibot.output(page.title())
         try:
             ocontent = page.get()
+            content = dochange(ocontent)
+            if content and (ocontent != content):
+                pywikibot.showDiff(ocontent, content)
+                page.put(content, u"ลบตาม[[วิกิพีเดีย:โครงการวิกิภาพยนตร์/รูปแบบการเขียน/บทความนักแสดง]]", force = True)
         except:
             preload.error()
-            continue
             
-        content = dochange(ocontent)
-        
-        if (content is not None) and (ocontent != content):
-            pywikibot.showDiff(ocontent, content)
-            page.put(content, u"ลบตาม[[วิกิพีเดีย:โครงการวิกิภาพยนตร์/รูปแบบการเขียน/บทความนักแสดง]]", force = True)
-    
-    pywikibot.stopme()
+if __name__ == "__main__":
+    args, site = preload.pre(u"ลบข้อมูลไม่จำเป็นตามโครงการวิกิภาพยนตร์")
+    try: main()
+    except: preload.posterror()
+    preload.post()

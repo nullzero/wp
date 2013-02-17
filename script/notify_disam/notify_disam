@@ -10,12 +10,10 @@ except:
     sys.exit()
 
 import pwikipedia as pywikibot
-pywikibot.handleArgs(u"-user:Nullzerotest")
 
 DEBUG = False
 
 startChecking = 1
-site = preload.site
 insertDisamT = None
 container = {}
 
@@ -88,13 +86,7 @@ def check(revision):
     if len(disamlinks) != 0:
         save(revision[1]['user'], revision[1]['title'], set(disamlinks))
     
-if __name__ == "__main__":
-    pywikibot.handleArgs("-log")
-    pywikibot.output(u"สคริปต์แจ้งโยงไปยังหน้าแก้กำกวมเริ่มทำงาน ณ เวลา %s" % preload.getTime())
-    
-    if len(sys.argv) > 1:
-        if sys.argv[1] == "-d": DEBUG = True
-        
+def main():
     gen = site.recentchanges(number = startChecking,
             rcshow = ['!redirect', '!bot'],
             namespace = "|".join([str(x) for x in xrange(0, 16, 2) if x != 2]), 
@@ -111,6 +103,9 @@ if __name__ == "__main__":
                 todaynum = datetime.datetime.today().day
         except:
             preload.error()
-    
-    pywikibot.output(u"สคริปต์แจ้งโยงไปยังหน้าแก้กำกวมหยุดทำงาน ณ เวลา %s" % preload.getTime())
-    pywikibot.stopme()
+            
+if __name__ == "__main__":
+    args, site = preload.pre(u"แจ้งโยงไปยังหน้าแก้กำกวม", lock = True)
+    try: main()
+    except: preload.posterror()
+    preload.post()

@@ -11,16 +11,14 @@ except:
 
 import pwikipedia as pywikibot
 
-if __name__ == "__main__":
-    pywikibot.handleArgs(u"-log")
-    pywikibot.output(u"สคริปต์ล้างกระบะทรายเริ่มทำงาน ณ เวลา %s" % preload.getTime())
-
-    site = pywikibot.getSite()
+def main():
     text = u"{{ทดลองเขียน}}<!-- กรุณาอย่าแก้ไขบรรทัดนี้ ขอบคุณครับ/ค่ะ -- Please leave this line as they are. Thank you! -->\n"
-
     page = pywikibot.Page(site, u"วิกิพีเดีย:ทดลองเขียน")
     page.put(text, u"ล้างหน้าอัตโนมัติด้วยบอต")
     # all sanbox pages can be obtained from miscellaneous.sandboxPages
 
-    pywikibot.output(u"สคริปต์ล้างกระบะทรายหยุดทำงาน ณ เวลา %s" % preload.getTime())
-    pywikibot.stopme()
+if __name__ == "__main__":
+    args, site = preload.pre(u"ล้างกระบะทราย", lock = True)
+    try: main()
+    except: preload.posterror()
+    preload.post()

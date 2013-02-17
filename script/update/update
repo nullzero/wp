@@ -10,14 +10,9 @@ except:
     sys.exit()
 
 from lib import libdate
-import wikipedia as pywikibot
-
-site = preload.site
+import pwikipedia as pywikibot
     
-if __name__ == "__main__":
-    pywikibot.handleArgs("-log")
-    pywikibot.output(u"สคริปต์ปรับปรุงวันสำคัญเริ่มทำงาน ณ เวลา %s" % preload.getTime())
-    
+def main():
     today = libdate.date.today()
     year = today.year + 543
     month = libdate.monthThai(today.month)
@@ -76,6 +71,9 @@ if __name__ == "__main__":
     page = pywikibot.Page(site, u"แม่แบบ:เหตุการณ์ปัจจุบัน/วันสำคัญ")
     
     if page.get() != wcontent: page.put(wcontent, u"อัปเดตรายชื่อวันสำคัญโดยบอต")
-        
-    pywikibot.output(u"สคริปต์ปรับปรุงวันสำคัญหยุดทำงาน ณ เวลา %s" % preload.getTime())
-    pywikibot.stopme()
+
+if __name__ == "__main__":
+    args, site = preload.pre(u"ปรับปรุงวันสำคัญ", lock = True)
+    try: main()
+    except: preload.posterror()
+    preload.post()

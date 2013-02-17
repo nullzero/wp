@@ -4,7 +4,7 @@ import re, sys
 
 try: import preload
 except:
-    print "Cannot import preload. Exit!"
+    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
 
 def findOverlap(pattern, text):

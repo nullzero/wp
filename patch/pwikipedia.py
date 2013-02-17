@@ -7,7 +7,7 @@ try: from lib import preload
 except:
     print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
     sys.exit()
-    
+
 from wikipedia import *
 
 """
@@ -157,3 +157,37 @@ def recentchanges(self, number=100, rcstart=None, rcend=None, rcshow=None,
         time.sleep(10)
 
 Site.recentchanges = recentchanges
+
+"""
+QuickCntRev ============================================================
+"""
+def quickCntRev(self):
+    params = {
+        'action': 'query',
+        'prop': 'revisions',
+        'titles': self.title(),
+        'rvprop': 'ids',
+        'rvlimit': 5000,
+    }
+    cnt = 0
+    while True:
+        dat = query.GetData(params, site)
+        cnt += len(dat['query']['pages'].itervalues().next()['revisions'])
+        if 'query-continue' in dat:
+            params['rvstartid'] = dat['query-continue']['revisions']['rvcontinue']
+        else:
+            break
+    return cnt
+
+Page.quickCntRev = quickCntRev
+
+"""
+getLang ================================================================
+"""
+def getLang(self, lang):
+    for page in self.interwiki():
+        if page.site().language() == lang:
+            return page
+
+Page.getLang = getLang
+
