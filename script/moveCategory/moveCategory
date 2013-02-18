@@ -10,42 +10,34 @@ except:
     sys.exit()
 
 import pwikipedia as pywikibot, pagegenerators, catlib, userlib, category
+from lib import libservice
 
 # constant
 USER = u"User:Nullzerobot"
-PAGEMAIN = USER + u"/บริการย้ายหมวดหมู่"
+PAGEMAIN = USER + u"/บริการย้ายหมวดหมู่/หมวดหมู่ที่รอการย้าย"
 PAGEPENDING = USER + u"/บริการย้ายหมวดหมู่/หมวดหมู่ที่รอการพิจารณา"
 PAGEREPORT =  USER + u"/รายงาน/บริการย้ายหมวดหมู่"
-SIMULATE = False
 VERIFYEDITCOUNT = 50
 VERIFYTIME = 300000000
-DONOTMOVE = False
 FLUSHPENDING = u"-pending"
+summary = u"ย้ายหมวดหมู่ ณ เวลา "
 # end constant
+patName = re.compile(ur"(?<=\:).*?(?=\]\])")
 
 def domove(source, dest):
-    pywikibot.output(u"ย้ายจาก " + source + " ไปยัง " + dest)
-    if DONOTMOVE: return
+    pywikibot.output(u"ย้ายจาก " + source + u" ไปยัง " + dest)
+    source = patName.search(source).group()
+    dest = patName.search(dest).group()
     robot = category.CategoryMoveRobot(source, dest, batchMode = True,
-        editSummary = u"", inPlace = False, titleRegex = None, withHistory = False)
-    try:
-        robot.run()
-    except:
-        preload.error()
-        return
-        
+        editSummary = u"ย้ายหมวดหมู่อัตโนมัติ", inPlace = False, titleRegex = None, withHistory = False)
+    robot.run()
     pageCat = pywikibot.Page(site, u"หมวดหมู่:" + source)
-    pageCat.put(u"{{bots|allow=Nullzerobot}}\n{{ลบ|บอตย้ายหมวดหมู่ไป[[:หมวดหมู่:" + dest + u"]] แล้ว}}", 
-        u"ย้ายหมวดหมู่โดยบอต", force = True)
+    content = pageCat.get()
+    content = re.sub(ur"(\{\{speedydelete.*?\}\})", r"\1", content)
+    pageCat.put(content, u"ย้ายหมวดหมู่โดยบอต", force = True)
 
-def verify(name, flag):
-    if(flag): return True
-    if name == u"N/A": return False
-    pattern = re.compile(u"\{\{.*\|(.*)\}\}")
-    result = pattern.match(name)
-    if not result: return False
-    name = result.group(1)
-    user = userlib.User(site, name)
+def verify(name):
+    user = userlib.User(pywikibot.getSite(), name)
     if not user.isRegistered(): return False
     if user.editCount() < VERIFYEDITCOUNT: return False
     if user.isBlocked(): return False
@@ -54,101 +46,53 @@ def verify(name, flag):
     if(difftime < VERIFYTIME): return False
     return True
 
-def catempty(title, flag):
-    if(flag): return True
-    cat = catlib.Category(site, 'Category:' + title)
-    listOfArticles = cat.articlesList(recurse = False)
-    return len(listOfArticles) == 0
+def appendTable(title, arr):
+    if not arr: return    
+    page = pywikibot.Page(site, title)
+    text = page.get()
+    text = re.sub(ur"(?m)^\|\}", u"\n".join(arr) + u"\n|}", text)
+    page.put(text, summary + preload.getTime())
 
 def main():
-    flag = False
+    flushMode = False
     
     if FLUSHPENDING in args:
         pywikibot.output(u"ย้ายหน้าที่รอพิจารณา")
-        flag = True
+        flushMode = True
         pageprocess = PAGEPENDING
-        SUFFIX = u"\n|}"
+        operation = "minor"
     else:
         pageprocess = PAGEMAIN
-        SUFFIX = u"\n|}\n\n{{/หมวดหมู่ที่รอการพิจารณา}}"
+        operation = "major"
     
     pageMain = pywikibot.Page(site, pageprocess)
-    text = pageMain.get()
-    pre, post = text.split(u"!! เสนอโดย")
+    oldcontent = pageMain.get()
     
-    if SUFFIX.strip() == post.strip():
-        pywikibot.output("ไม่มีอะไรให้ทำ!")
-        return
+    tag = (u"<!-- เริ่มตารางย้ายหมวดหมู่ -->", u"<!-- จบตารางย้ายหมวดหมู่ -->")
+    header, table, disable = libservice.calc(pageMain, tag, operation, verify)
     
-    summary = u"ย้ายหมวดหมู่ ณ เวลา "
-    pageMain.put(pre + u"!! เสนอโดย" + SUFFIX, u"เริ่ม" + summary + preload.getTime())
+    puttext = re.sub(u"(?s)" + tag[0] + u".*?" + tag[1],
+        tag[0] + u"\n" + header[0] + u"\n|-\n! " + u" !! ".join(header[1]) + u"\n|}\n" + tag[1],
+        oldcontent)
+    if oldcontent != puttext:
+        pageMain = pywikibot.Page(site, pageprocess)
+        ret = pageMain.put(puttext, u"เริ่ม" + summary + preload.getTime())
+        libservice.writerev(ret[2]['newrevid'], operation)
     
-    text = post
-
-    pattern = re.compile(u"\|-.*\n\|(.*)\|\|.*\[\[:.*:(.*)\]\].*\[\[:.*:(.*)\]\].*\|\|(.*)\n")
-    report = u""
-    pending = u""
-    isMove = False
-    isPend = False
+    report = []
+    pending = []
     
-    while True:
-        result = pattern.search(text)
-        if not result: break
-        vdate = result.group(1).strip()
-        vfrom = result.group(2).strip()
-        vto   = result.group(3).strip()
-        vby   = result.group(4).strip()
-        text = pattern.sub(u"", text, 1)
-        if(not vby): vby = u"N/A"
-        
-        line = u"|-\n| "
-        line += vdate
-        line += u" || [[:หมวดหมู่:" 
-        line += vfrom 
-        line += u"]] || [[:หมวดหมู่:"
-        line += vto
-        line += u"]] || "
-        line += vby
-
-        if vdate and vfrom and vto and verify(vby, flag) and catempty(vto, flag):
-            isMove = True
-            domove(vfrom, vto)
-            line += u" || "
-            line += preload.getTime()
-            line += u"\n"
-            report += line
+    for i, line in enumerate(table):
+        putline = u"|-\n| " + u" || ".join(line)
+        if flushMode or (not disable[i]):
+            try: domove(line[1], line[2])
+            except: preload.error()
+            report.append(putline + u" || " + preload.getTime())
         else:
-            isPend = True
-            line += u"\n"
-            pending += line
-
-    text = text.strip()[:-len(SUFFIX)]
+            pending.append(putline)
     
-    if text != u"":
-        pywikibot.output("Error!")
-        pywikibot.output(text)
-    
-    if (not isMove) and (not isPend):
-        pywikibot.output("ไม่มีอะไรให้ทำ (WTF)")
-        return
-
-    report += u"|}"
-    pending += u"|}"
-    p_end = re.compile(u"\|\}")
-    
-    if isMove:
-        pageReport = pywikibot.Page(site, PAGEREPORT)
-        text = pageReport.get(get_redirect = True)
-        text = p_end.sub(u"", text, 1)
-        text += report
-        pageReport.put(text, summary + preload.getTime())
-
-    if isPend:
-        pagePending = pywikibot.Page(site, PAGEPENDING)
-        text = pagePending.get(get_redirect = True)
-        text = p_end.sub(u"", text, 1)
-        text += pending
-        pagePending.put(text, summary + preload.getTime())
+    appendTable(PAGEREPORT, report)
+    appendTable(PAGEPENDING, pending)
 
 if __name__ == "__main__":
     args, site = preload.pre(u"ย้ายหมวดหมู่อัตโนมัติ", lock = True)

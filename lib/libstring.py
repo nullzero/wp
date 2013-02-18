@@ -13,3 +13,10 @@ def findOverlap(pattern, text):
     cnt = 0
     for i in it: cnt += 1
     return cnt
+
+def repSub(pattern, replacetext, text):
+    while True:
+        oldtext = text
+        text = re.sub(pattern, replacetext, text)
+        if text == oldtext: break
+    return text
