@@ -68,7 +68,7 @@ testscript(){
     cd bots
     for i in *; do
         cd $i
-        python ./../../pywikipedia/replace.py -page:User:"$i"/ts -regex "(?s)^(.*)$" "\1$RANDOM" -summary:ทดสอบ -always
+        python ./../../pywikipedia/replace.py -page:User:"$i"/ts -regex "(?s)^(.*)$" "$RANDOM" -summary:ทดสอบ -always
         cd ..
     done
 }
