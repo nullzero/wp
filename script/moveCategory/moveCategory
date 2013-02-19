@@ -22,7 +22,7 @@ VERIFYTIME = 300000000
 FLUSHPENDING = u"-pending"
 summary = u"ย้ายหมวดหมู่ ณ เวลา "
 # end constant
-patName = re.compile(ur"(?<=\:).*?(?=\]\])")
+patName = re.compile(ur"(?<=:)(?!.*:).*(?=\]\])")
 
 def domove(source, dest):
     pywikibot.output(u"ย้ายจาก " + source + u" ไปยัง " + dest)
