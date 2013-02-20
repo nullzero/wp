@@ -1,41 +1,51 @@
-    # -*- coding: utf-8  -*-
+# -*- coding: utf-8  -*-
 """
-Library to set basic environment. It also provide frequently used function.
-This library should be imported in every script that require to connect to
-pywikipedia library
+Library to set basic environment. It also provide frequently used
+function. This library should be imported in every script that require
+to connect to pywikipedia library
 """
+
+__version__ = "1.0.1"
+__author__ = "Sorawee Porncharoenwase"
 
 import sys, os, traceback, datetime, imp
 
-dirlib = os.path.dirname(__file__)
-sys.path.append(os.path.abspath(os.path.join(dirlib, "..")))
-sys.path.append(os.path.abspath(os.path.join(dirlib, "../patch")))
-sys.path.append(os.path.abspath(os.path.join(dirlib, "../pywikipedia")))
+def File(path, name):
+    return os.path.abspath(os.path.join(os.path.dirname(path), name))
 
-try: import wikipedia as pywikibot
-except:
-    print traceback.format_exc()
-    print "E: Can't connect to library!"
-    sys.exit()
+dirscript = os.path.dirname(__file__)
+sys.path.append(File(__file__, ".."))
+sys.path.append(File(__file__, "../patch"))
+sys.path.append(File(__file__, "../pywikipedia"))
 
+import wikipedia as pywikibot
 from conf import glob as conf
+
+def deunicode(st):
+    """Return normal quoted string."""
+    try:
+        st = str(st)
+    except UnicodeEncodeError:
+        st = st.encode("utf-8")
+    return st
 
 def error(e=None):
     """
     If error message is given, print that error message. Otherwise,
     print traceback instead.
     """
-    if e: pywikibot.output(u"E: " + e)
-    else: pywikibot.output(u"E: " + traceback.format_exc().decode("utf-8"))
-    
+    if e:
+        pywikibot.output(u"E: " + e)
+    else:
+        pywikibot.output(u"E: " + unicode(traceback.format_exc()))
+
 def getTime():
     """Print timestamp."""
     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 fullname = None
 lockfile = None
-dirname = os.path.abspath(os.path.dirname(sys.argv[0]))
-basename = os.path.basename(sys.argv[0])
+basescript = os.path.basename(sys.argv[0])
 
 def pre(name, lock = False):
     """
@@ -48,26 +58,33 @@ def pre(name, lock = False):
     fullname = name
     pywikibot.output(u"The script " + fullname + u". Start at " + getTime())
     if lock:
-        lockfile = os.path.join("/tmp", basename + ".wp.lock")
+        lockfile = os.path.join("/tmp", basescript + ".wp.lock")
         if os.path.exists(lockfile):
             error(u"Lockfile found. Unable to execute the script.")
             pywikibot.stopme()
             sys.exit()
         open(lockfile, 'w').close()
-        
-    confpath = os.path.abspath(os.path.join(dirlib, "../conf", basename + ".py"))
-    if os.path.exists(confpath): module = imp.load_source("conf", confpath)
-    else: module = None
+
+    confpath = os.path.abspath(os.path.join(dirscript,
+                                            "../conf/",
+                                            basescript + ".py"))
+    if os.path.exists(confpath):
+        module = imp.load_source("conf", confpath)
+    else:
+        module = None
     return pywikibot.handleArgs(), pywikibot.getSite(), module
 
 def post(unlock = True):
     """
-    This function removes throttle file. It also removes lockfile unless 
+    This function removes throttle file. It also removes lockfile unless
     unlock variable is set to False
     """
     if unlock and lockfile:
-        try: os.remove(lockfile)
-        except: error(u"Unable to remove lockfile.")
+        try:
+            os.remove(lockfile)
+        except OSError:
+            error(u"Unable to remove lockfile.")
+
     pywikibot.output(u"The script " + fullname + u". Stop at " + getTime())
     pywikibot.stopme()
     sys.exit()
@@ -77,21 +94,3 @@ def posterror():
     error()
     error(u"Suddenly halt!")
     post(unlock = False)
-
-def deUnicode(st):
-    """Return normal quoted string."""
-    try: st = str(st)
-    except UnicodeEncodeError: st = st.encode("utf-8")
-    return st
-
-def enUnicode(st):
-    """Return unicode quoted string."""
-    return unicode(st)
-
-"""
-def simplifyPath(path):
-    return os.path.abspath(os.path.expanduser(path))
-
-def File(path, name):
-    return os.path.join(os.path.dirname(path), name)
-"""

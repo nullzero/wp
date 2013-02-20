@@ -1,20 +1,19 @@
 # -*- coding: utf-8  -*-
+"""
+Library to manage everything about language (especially Thai language)
+"""
 
 import re, sys
-
-try: import preload
-except:
-    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
-    sys.exit()
-    
+import preload    
 import libstring, movepages
-import wikipedia as pywikibot
+import pwikipedia as pywikibot
 
 ThaiBegin = u"\u0e01"
 ThaiEnd = u"\u0e5b"
 
 Thai = {
-    'Alphabet' : u"".join([unichr(i) for i in xrange(ord(u'ก'), ord(u'ฮ') + 1)]),
+    'Alphabet' : u"".join([unichr(i) for i in xrange(ord(u'ก'),
+                                                    ord(u'ฮ') + 1)]),
     'VowelFront' : u"เแโใไ",
     'VowelBack' : u"ะาๅ",
     'VowelUm' : u"ำ",
@@ -31,116 +30,131 @@ Thai['All'] = u"".join([Thai[i] for i in Thai])
 Thai['Not'] = u"^%s" % Thai['All']
 
 ASCII = {
-    'Symbol' : u"".join([unichr(i) for i in xrange(128) if (re.search(u"[A-Za-z]", unichr(i)) is None)]),
+    'Symbol' : u"".join([unichr(i) for i in xrange(128) if \
+                        re.search(u"[A-Za-z]", unichr(i))]),
 }
 
 def analyzeChar(content):
+    """
+    Return number of Thai characters and number of foreign characters.
+    """
     cntThaiChar = 0
     cntForeignChar = 0
     
     for i in content:
-        if i in Thai['All']: cntThaiChar += 1
-        else: cntForeignChar += 1
+        if i in Thai['All']:
+            cntThaiChar += 1
+        else:
+            cntForeignChar += 1
     
     return cntThaiChar, cntForeignChar
 
-def bracket(x): return u"[" + x + u"]"
+def cntWrongVowelHelper(x, y, line):
+    """
+    Helper function to count number of occurrences of impossible vowel
+    arrangement.
+    """
+    cnt += libstring.findOverlap(u"[" + x + u"]" + u"[" + y + u"]", line)
 
 def cntWrongVowel(line):
+    """Return number of occurrences of impossible vowel arrangement."""
     cnt = 0
-    cnt += libstring.findOverlap(bracket(Thai['VowelFront']) + bracket(Thai['VowelFront']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelFront']) + bracket(Thai['VowelBack']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelFront']) + bracket(Thai['VowelUm']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelFront']) + bracket(Thai['VowelUp']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelFront']) + bracket(Thai['VowelDown']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelFront']) + bracket(Thai['VowelTaiku']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelFront']) + bracket(Thai['Sound']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelFront']) + bracket(Thai['Tantakad']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelFront']) + bracket(Thai['Paiyan']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelFront']) + bracket(Thai['Yamok']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelFront']) + bracket(Thai['Not']), line)
+    cnt += cntWringVowelHelper(Thai['VowelFront'], Thai['VowelFront'], line)
+    cnt += cntWringVowelHelper(Thai['VowelFront'], Thai['VowelBack'], line)
+    cnt += cntWringVowelHelper(Thai['VowelFront'], Thai['VowelUm'], line)
+    cnt += cntWringVowelHelper(Thai['VowelFront'], Thai['VowelUp'], line)
+    cnt += cntWringVowelHelper(Thai['VowelFront'], Thai['VowelDown'], line)
+    cnt += cntWringVowelHelper(Thai['VowelFront'], Thai['VowelTaiku'], line)
+    cnt += cntWringVowelHelper(Thai['VowelFront'], Thai['Sound'], line)
+    cnt += cntWringVowelHelper(Thai['VowelFront'], Thai['Tantakad'], line)
+    cnt += cntWringVowelHelper(Thai['VowelFront'], Thai['Paiyan'], line)
+    cnt += cntWringVowelHelper(Thai['VowelFront'], Thai['Yamok'], line)
+    cnt += cntWringVowelHelper(Thai['VowelFront'], Thai['Not'], line)
                
-    cnt += libstring.findOverlap(bracket(Thai['VowelBack']) + bracket(Thai['VowelUm']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelBack']) + bracket(Thai['VowelUp']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelBack']) + bracket(Thai['VowelDown']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelBack']) + bracket(Thai['VowelTaiku']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelBack']) + bracket(Thai['Sound']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelBack']) + bracket(Thai['Tantakad']), line)
+    cnt += cntWringVowelHelper(Thai['VowelBack'], Thai['VowelUm'], line)
+    cnt += cntWringVowelHelper(Thai['VowelBack'], Thai['VowelUp'], line)
+    cnt += cntWringVowelHelper(Thai['VowelBack'], Thai['VowelDown'], line)
+    cnt += cntWringVowelHelper(Thai['VowelBack'], Thai['VowelTaiku'], line)
+    cnt += cntWringVowelHelper(Thai['VowelBack'], Thai['Sound'], line)
+    cnt += cntWringVowelHelper(Thai['VowelBack'], Thai['Tantakad'], line)
                
-    cnt += libstring.findOverlap(bracket(Thai['VowelUm']) + bracket(Thai['VowelBack']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelUm']) + bracket(Thai['VowelUm']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelUm']) + bracket(Thai['VowelUp']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelUm']) + bracket(Thai['VowelDown']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelUm']) + bracket(Thai['VowelTaiku']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelUm']) + bracket(Thai['Sound']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelUm']) + bracket(Thai['Tantakad']), line)
+    cnt += cntWringVowelHelper(Thai['VowelUm'], Thai['VowelBack'], line)
+    cnt += cntWringVowelHelper(Thai['VowelUm'], Thai['VowelUm'], line)
+    cnt += cntWringVowelHelper(Thai['VowelUm'], Thai['VowelUp'], line)
+    cnt += cntWringVowelHelper(Thai['VowelUm'], Thai['VowelDown'], line)
+    cnt += cntWringVowelHelper(Thai['VowelUm'], Thai['VowelTaiku'], line)
+    cnt += cntWringVowelHelper(Thai['VowelUm'], Thai['Sound'], line)
+    cnt += cntWringVowelHelper(Thai['VowelUm'], Thai['Tantakad'], line)
                
-    cnt += libstring.findOverlap(bracket(Thai['VowelUp']) + bracket(Thai['VowelBack']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelUp']) + bracket(Thai['VowelUm']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelUp']) + bracket(Thai['VowelUp']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelUp']) + bracket(Thai['VowelDown']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelUp']) + bracket(Thai['VowelTaiku']), line)
+    cnt += cntWringVowelHelper(Thai['VowelUp'], Thai['VowelBack'], line)
+    cnt += cntWringVowelHelper(Thai['VowelUp'], Thai['VowelUm'], line)
+    cnt += cntWringVowelHelper(Thai['VowelUp'], Thai['VowelUp'], line)
+    cnt += cntWringVowelHelper(Thai['VowelUp'], Thai['VowelDown'], line)
+    cnt += cntWringVowelHelper(Thai['VowelUp'], Thai['VowelTaiku'], line)
                
-    cnt += libstring.findOverlap(bracket(Thai['VowelDown']) + bracket(Thai['VowelBack']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelDown']) + bracket(Thai['VowelUm']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelDown']) + bracket(Thai['VowelUp']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelDown']) + bracket(Thai['VowelDown']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelDown']) + bracket(Thai['VowelTaiku']), line)
+    cnt += cntWringVowelHelper(Thai['VowelDown'], Thai['VowelBack'], line)
+    cnt += cntWringVowelHelper(Thai['VowelDown'], Thai['VowelUm'], line)
+    cnt += cntWringVowelHelper(Thai['VowelDown'], Thai['VowelUp'], line)
+    cnt += cntWringVowelHelper(Thai['VowelDown'], Thai['VowelDown'], line)
+    cnt += cntWringVowelHelper(Thai['VowelDown'], Thai['VowelTaiku'], line)
                
-    cnt += libstring.findOverlap(bracket(Thai['VowelTaiku']) + bracket(Thai['VowelBack']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelTaiku']) + bracket(Thai['VowelUm']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelTaiku']) + bracket(Thai['VowelUp']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelTaiku']) + bracket(Thai['VowelDown']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelTaiku']) + bracket(Thai['VowelTaiku']), line)
-    cnt += libstring.findOverlap(bracket(Thai['VowelTaiku']) + bracket(Thai['Tantakad']), line)
+    cnt += cntWringVowelHelper(Thai['VowelTaiku'], Thai['VowelBack'], line)
+    cnt += cntWringVowelHelper(Thai['VowelTaiku'], Thai['VowelUm'], line)
+    cnt += cntWringVowelHelper(Thai['VowelTaiku'], Thai['VowelUp'], line)
+    cnt += cntWringVowelHelper(Thai['VowelTaiku'], Thai['VowelDown'], line)
+    cnt += cntWringVowelHelper(Thai['VowelTaiku'], Thai['VowelTaiku'], line)
+    cnt += cntWringVowelHelper(Thai['VowelTaiku'], Thai['Tantakad'], line)
                
-    cnt += libstring.findOverlap(bracket(Thai['Sound']) + bracket(Thai['VowelUp']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Sound']) + bracket(Thai['VowelDown']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Sound']) + bracket(Thai['VowelTaiku']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Sound']) + bracket(Thai['Sound']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Sound']) + bracket(Thai['Tantakad']), line)
+    cnt += cntWringVowelHelper(Thai['Sound'], Thai['VowelUp'], line)
+    cnt += cntWringVowelHelper(Thai['Sound'], Thai['VowelDown'], line)
+    cnt += cntWringVowelHelper(Thai['Sound'], Thai['VowelTaiku'], line)
+    cnt += cntWringVowelHelper(Thai['Sound'], Thai['Sound'], line)
+    cnt += cntWringVowelHelper(Thai['Sound'], Thai['Tantakad'], line)
                
-    cnt += libstring.findOverlap(bracket(Thai['Tantakad']) + bracket(Thai['VowelBack']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Tantakad']) + bracket(Thai['VowelUm']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Tantakad']) + bracket(Thai['VowelUp']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Tantakad']) + bracket(Thai['VowelDown']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Tantakad']) + bracket(Thai['VowelTaiku']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Tantakad']) + bracket(Thai['Sound']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Tantakad']) + bracket(Thai['Tantakad']), line)
+    cnt += cntWringVowelHelper(Thai['Tantakad'], Thai['VowelBack'], line)
+    cnt += cntWringVowelHelper(Thai['Tantakad'], Thai['VowelUm'], line)
+    cnt += cntWringVowelHelper(Thai['Tantakad'], Thai['VowelUp'], line)
+    cnt += cntWringVowelHelper(Thai['Tantakad'], Thai['VowelDown'], line)
+    cnt += cntWringVowelHelper(Thai['Tantakad'], Thai['VowelTaiku'], line)
+    cnt += cntWringVowelHelper(Thai['Tantakad'], Thai['Sound'], line)
+    cnt += cntWringVowelHelper(Thai['Tantakad'], Thai['Tantakad'], line)
                
-    cnt += libstring.findOverlap(bracket(Thai['Paiyan']) + bracket(Thai['VowelBack']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Paiyan']) + bracket(Thai['VowelUm']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Paiyan']) + bracket(Thai['VowelUp']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Paiyan']) + bracket(Thai['VowelDown']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Paiyan']) + bracket(Thai['VowelTaiku']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Paiyan']) + bracket(Thai['Sound']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Paiyan']) + bracket(Thai['Tantakad']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Paiyan']) + bracket(Thai['Paiyan']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Paiyan']) + bracket(Thai['Yamok']), line)
+    cnt += cntWringVowelHelper(Thai['Paiyan'], Thai['VowelBack'], line)
+    cnt += cntWringVowelHelper(Thai['Paiyan'], Thai['VowelUm'], line)
+    cnt += cntWringVowelHelper(Thai['Paiyan'], Thai['VowelUp'], line)
+    cnt += cntWringVowelHelper(Thai['Paiyan'], Thai['VowelDown'], line)
+    cnt += cntWringVowelHelper(Thai['Paiyan'], Thai['VowelTaiku'], line)
+    cnt += cntWringVowelHelper(Thai['Paiyan'], Thai['Sound'], line)
+    cnt += cntWringVowelHelper(Thai['Paiyan'], Thai['Tantakad'], line)
+    cnt += cntWringVowelHelper(Thai['Paiyan'], Thai['Paiyan'], line)
+    cnt += cntWringVowelHelper(Thai['Paiyan'], Thai['Yamok'], line)
                
-    cnt += libstring.findOverlap(bracket(Thai['Yamok']) + bracket(Thai['VowelFront']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Yamok']) + bracket(Thai['VowelBack']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Yamok']) + bracket(Thai['VowelUm']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Yamok']) + bracket(Thai['VowelUp']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Yamok']) + bracket(Thai['VowelDown']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Yamok']) + bracket(Thai['VowelTaiku']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Yamok']) + bracket(Thai['Sound']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Yamok']) + bracket(Thai['Tantakad']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Yamok']) + bracket(Thai['Paiyan']), line)                
+    cnt += cntWringVowelHelper(Thai['Yamok'], Thai['VowelFront'], line)
+    cnt += cntWringVowelHelper(Thai['Yamok'], Thai['VowelBack'], line)
+    cnt += cntWringVowelHelper(Thai['Yamok'], Thai['VowelUm'], line)
+    cnt += cntWringVowelHelper(Thai['Yamok'], Thai['VowelUp'], line)
+    cnt += cntWringVowelHelper(Thai['Yamok'], Thai['VowelDown'], line)
+    cnt += cntWringVowelHelper(Thai['Yamok'], Thai['VowelTaiku'], line)
+    cnt += cntWringVowelHelper(Thai['Yamok'], Thai['Sound'], line)
+    cnt += cntWringVowelHelper(Thai['Yamok'], Thai['Tantakad'], line)
+    cnt += cntWringVowelHelper(Thai['Yamok'], Thai['Paiyan'], line)                
                
-    cnt += libstring.findOverlap(bracket(Thai['Not']) + bracket(Thai['VowelBack']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Not']) + bracket(Thai['VowelUm']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Not']) + bracket(Thai['VowelUp']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Not']) + bracket(Thai['VowelDown']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Not']) + bracket(Thai['VowelTaiku']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Not']) + bracket(Thai['Sound']), line)
-    cnt += libstring.findOverlap(bracket(Thai['Not']) + bracket(Thai['Tantakad']), line)
+    cnt += cntWringVowelHelper(Thai['Not'], Thai['VowelBack'], line)
+    cnt += cntWringVowelHelper(Thai['Not'], Thai['VowelUm'], line)
+    cnt += cntWringVowelHelper(Thai['Not'], Thai['VowelUp'], line)
+    cnt += cntWringVowelHelper(Thai['Not'], Thai['VowelDown'], line)
+    cnt += cntWringVowelHelper(Thai['Not'], Thai['VowelTaiku'], line)
+    cnt += cntWringVowelHelper(Thai['Not'], Thai['Sound'], line)
+    cnt += cntWringVowelHelper(Thai['Not'], Thai['Tantakad'], line)
     
     return cnt
 
 checkVowel = u"แโใไะาๅำัิีึืํฺุู็่้๊๋์ฯ"
 
 def fixRepetedVowelTitle(page):
+    """
+    If found impossible vowel arrangement, correct by moving that page.
+    """
     opagetitle = page.title()
     pagetitle = opagetitle
     
@@ -148,13 +162,18 @@ def fixRepetedVowelTitle(page):
     
     if pagetitle != opagetitle:
         pywikibot.output("ย้ายบทความชื่อมีสระซ้อน")
+        reason = u"โรบอต: เปลี่ยนชื่อบทความมีสระซ้อน"
         try: 
-            movepages.MovePagesBot(None, None, True, False, True, u"โรบอต: เปลี่ยนชื่อบทความมีสระซ้อน").moveOne(page, pagetitle)
-            pywikibot.Page(pywikibot.getSite(), opagetitle).put(u"{{ลบ|ชื่อมีสระซ้อน ย้ายหน้าไป[[%s]]แล้ว}}" % pagetitle, u"โรบอต: แจ้งลบชื่อมีสระซ้อน", force = True)
-        except: preload.error()
+            page.move(pagetitle, reason=reason)
+        except:
+            preload.error()
+        else:
+            page = pywikibot.Page(pywikibot.getSite(), page.title())
+            page.delete(reason=reason, prompt=False, mark=True)
     
 def fixRepetedVowel(content):
-    for i in checkVowel: content = re.sub(i + u"+", i, content)
+    for i in checkVowel:
+        content = re.sub(i + u"+", i, content)
     return content
 
 import random
@@ -172,4 +191,7 @@ def randomCheckRepetition(s):
     return int(output)
 
 def checkRepetition(s):
-    return (randomCheckRepetition(s) + randomCheckRepetition(s) + randomCheckRepetition(s)) / 3
+    lim = 3
+    for i in xrange(lim):
+        res += randomCheckRepetition(s)
+    return res // lim

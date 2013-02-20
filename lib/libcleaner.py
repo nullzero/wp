@@ -1,60 +1,116 @@
 # -*- coding: utf-8  -*-
 """
-This library 
+Clean! Clean! Clean!
 """
 
+__version__ = "1.0.1"
+__author__ = "Sorawee Porncharoenwase"
+
 import sys, os, re
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-try: from lib import preload
-except:
-    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
-    sys.exit()
-
+import preload
+import pwikipedia as pywikibot
 from lib import liblang
-import wikipedia as pywikibot
 
-def dellink(s):
+def sectionClean(s):
+    """Helper function to clean section's title."""
     s = s.group()
-    s = re.sub(u"'''", u"", s)
-    s = re.sub(u"''", u"", s)
-    s = re.sub(u"<(?!/?(ref|sup|sub)).*?>", u"", s)
+    for pat in patListSection:
+        s = pat[0].sub(pat[1], s)
     return s.strip()
 
-def wikitable(s):
+def wikitableClean(s):
+    """Helper function to clean wikitable."""
     s = s.group()
-    s = re.sub(u"^(\|[\-\+\}]?)[ \t\r\f\v]*", u"\g<1> ", s, flags = re.MULTILINE)
-    s = re.sub(u"[ \t\r\f\v]*\|\|[ \t\r\f\v]*", u" || ", s)
-    s = re.sub(u"[ \t\r\f\v]*!![ \t\r\f\v]*", u" !! ", s)
-    s = re.sub(u"^\|([\}\-$])[ \t\r\f\v]*$", u"|\g<1>", s, flags = re.MULTILINE)
-    s = re.sub(u"^![ \t\r\f\v]*", u"! ", s, flags = re.MULTILINE)
+    for pat in patListTable:
+        s = pat[0].sub(pat[1], s)
     return s
 
 def consecutiveSpace(s):
-    return re.sub(u"[ \t\r\f\v]+", u" ", s.group())
+    """Remove consecutive spaces."""
+    return re.sub(u"[ \t\r\f\v]+", u" ".group())
 
 def clean(s):
+    """Clean text!"""
     s = liblang.fixRepetedVowel(s)
-    s = re.sub(u"_(?=[^\[\]]*\]\])", u" ", s)
-    s = re.sub(u"(?<!=)[ \t\r\f\v]+$", u"", s, flags = re.MULTILINE)
-    s = re.sub(u"=$", u"= ", s, flags = re.MULTILINE)
-    s = re.sub(u"^(=+)[ \t\r\f\v]*(.*?)[ \t\r\f\v]*(=+)[ \t\r\f\v]*$", u"\g<1> \g<2> \g<3>", s, flags = re.MULTILINE)
-    s = re.sub(u"^= (.*?) =$", u"== \g<1> ==", s, flags = re.MULTILINE)
-    s = re.sub(u"^==+\ .*?\ ==+$", dellink, s, flags = re.MULTILINE)
-    s = re.sub(u"(rowspan|align|colspan|width)[ \t\r\f\v]*=[ \t\r\f\v]*", u"\g<1> = ", s)
-    s = re.sub(u"\[\[(.?)[Cc]ategory:", u"[[\g<1>หมวดหมู่:", s)
-    s = re.sub(u"\[\[(.?)([Ii]mage|[Ff]ile|ภาพ):", u"[[\g<1>ไฟล์:", s)
-    s = re.sub(u"==[ \t\r\f\v]*(แหล่ง|หนังสือ|เอกสาร|แหล่งข้อมูล)อ้างอิง[ \t\r\f\v]*==", u"== อ้างอิง ==", s)
-    s = re.sub(u"==[ \t\r\f\v]*(หัวข้ออื่นที่เกี่ยวข้อง|ดูเพิ่มที่)[ \t\r\f\v]*==", u"== ดูเพิ่ม ==", s)
-    s = re.sub(u"==[ \t\r\f\v]*(เว็บไซต์อื่น|(เว็บไซต์|โยง|ลิงก์|ลิงค์|Link\ |ข้อมูล|แหล่งข้อมูล)ภายนอก)[ \t\r\f\v]*==",
-        u"== แหล่งข้อมูลอื่น ==", s)
-    s = re.sub(u"^(:*)([#\*]+)[ \t\r\f\v]*", u"\g<1>\g<2> ", s, flags = re.MULTILINE)
-    s = re.sub(u"^(:+)(?![\*#])[ \t\r\f\v]*", u"\g<1> ", s, flags = re.MULTILINE)
-    s = re.sub(u"\[\[[ \t\r\f\v]*(.*?)[ \t\r\f\v]*\]\]", u"[[\g<1>]]", s)
-    s = re.sub(u"^\|(?![\}\+\-])[ \t\r\f\v]*", u"| ", s, flags = re.MULTILINE)
-    s = re.sub(u"^\{\|.*^\|\}.*?$", wikitable, s, flags = re.DOTALL | re.MULTILINE)
-    s = re.sub(u"<references[ \t\r\f\v]*/[ \t\r\f\v]*>", u"{{รายการอ้างอิง}}", s, flags = re.MULTILINE)
-    s = re.sub(u"\{\{[ \t\r\f\v]*Reflist[ \t\r\f\v]*", u"{{รายการอ้างอิง", s, flags = re.MULTILINE | re.IGNORECASE)
-    s = re.sub(u"^(?![ \t\r\f\v]).*?$", consecutiveSpace, s, flags = re.MULTILINE)
-    s = re.sub(u"(?m)^(:+)\ +\{\|", u"\g<1>{|", s)
+    for pat in patList:
+        s = pat[0].sub(pat[1], s)
     return s
+
+patList = []
+
+patList.append((ur"[\t\r\f\v]", u" "))
+# change all whitespaces to space!
+patList.append((ur"_(?=[^\[\]]*\]\])", u" "))
+# $[[_abc_def_]]$ => $[[ abc def ]]$
+patList.append((ur"(?m)(?<!=) +$", u""))
+# strip traling space
+patList.append((ur"(?m)=$", u"= "))
+# strip traling space except the last character is =
+patList.append((ur"(?m)^(=+) *(.*?) *(=+) *$", ur"\1 \2 \3"))
+# $==   oak   ==   $ => $== oak ==$
+patList.append((ur"(?m)^= (.*?) =$", ur"== \1 =="))
+# don't use first-level headings
+patList.append((ur"(?m)^==+\ .*?\ ==+$", sectionClean))
+"""call dellink!"""
+tablemarkup = [u"rowspan", u"align", u"colspan", u"width", u"style"]
+patList.append((u"(%s) *= *" % u"|".join(tablemarkup), ur"\1 = "))
+# clean whitespace around equal sign
+patList.append((ur"\[\[ *(.*?) *\]\]", ur"[[\1]]"))
+# $[[   abc   def   ]]$ => $[[abc   def]]$
+patList.append((ur"\[\[(:?)[Cc]ategory:", ur"[[\1หมวดหมู่:"))
+# L10n
+patList.append((ur"\[\[(:?)([Ii]mage|[Ff]ile|ภาพ):", ur"[[\1ไฟล์:"))
+# L10n
+patList.append((u"(?m)^== (แหล่ง|หนังสือ|เอกสาร|แหล่งข้อมูล)อ้างอิง ==$",
+                u"== อ้างอิง =="))
+# อ้างอิง
+patList.append((u"(?m)^== (หัวข้ออื่นที่เกี่ยวข้อง|ดูเพิ่มที่) ==$",
+                u"== ดูเพิ่ม =="))
+# ดูเพิ่ม
+patList.append((ur"""(?mx)^==\ (เว็บไซต์|โยง|ลิง[กค]์|Link *|(แหล่ง)?ข้อมูล)
+                (ภายนอก|อื่น)\ ==$""", u"== แหล่งข้อมูลอื่น =="))
+# แหล่งข้อมูลอื่น
+patList.append((ur"(?m)^(:*)([#\*]+) *", ur"\1\2 "))
+# clean whitespace after indentation and bullet
+patList.append((ur"(?m)^(:+)(?![\*#]) *", ur"\1 "))
+# clean whitespace after indentation and bullet
+patList.append((ur"(?m)^(:*)([\*#]*) \{\|", ur"\1\2{|"))
+# but openning tag of table must stick with front symbol
+# "$:::** {|$" => "$:::**{|$"
+patList.append((ur"(?m)^\|(?![\}\+\-]) *", u"| "))
+# clean whitespace for template and table
+# "$|asdasd$" => "$| asdasd$"
+patList.append((u"(?ms)^\{\|.*^\|\}.*?$", wikitableClean))
+"""call wikitable!"""
+patList.append((u"<references */ *>", u"{{รายการอ้างอิง}}"))
+# FIXME: call this on some pages makes reference error.
+patList.append((u"(?i)\{\{ *Reflist *", u"{{รายการอ้างอิง"))
+# L10n
+#patList.append((u"(?m)^(?! ).*?$", consecutiveSpace))
+# FIXME: source code!
+""" Section ========================================================="""
+patListSection = []
+
+patListSection.append((u"'''", u""))
+# remove all bold markup
+patListSection.append((u"''", u""))
+# remove all italic markup
+patListSection.append((u"<(?!/?(ref|sup|sub)).*?>", u""))
+# remove all html markup except refupub
+""" Table ========================================================="""
+patListTable = []
+
+patListTable.append((ur"(?m)^(\|[\-\+\}]?) *", ur"\1 "))
+patListTable.append((ur" *\|\| *", u" || "))
+patListTable.append((u" *!! *", u" !! "))
+patListTable.append((ur"(?m)^\|([\}\-$]) *$", ur"|\1"))
+patListTable.append((u"(?m)^! *", u"! "))
+    
+for i, pat in enumerate(patList):
+    patList[i] = (re.compile(pat[0]), pat[1])
+
+for i, pat in enumerate(patListTable):
+    patListTable[i] = (re.compile(pat[0]), pat[1])
+    
+for i, pat in enumerate(patListSection):
+    patListSection[i] = (re.compile(pat[0]), pat[1])

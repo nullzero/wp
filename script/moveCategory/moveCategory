@@ -1,48 +1,104 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+"""
+Service to move category automatically. There are two modes in running;
+major and minor.
+
+Major mode will look for each request at pageMajor and perform it if
+requester passes qualification. If not, the script will append that
+request to pageMinor. This mode should be executed periodically.
+
+Minor mode will perform every request in pageMinor without qualifying.
+This mode should be executed manually and deliberately. It can be
+activated by running script with parameter "pending"
+(can use alternative word by changing variable 'pendingParam')
+
+Requirement:
+    servicePath:    Main page's prefix
+    pageMajor:      Page that customer will leave their requests.
+    pageMinor:      Page that unqualified automatically request will
+                    be kept.
+    datwiki:        Page that keep id of last revision. To prevent
+                    vandalism on this page, the page should be local
+                    javascript (end with .js) so that there are only
+                    page owner and administrator that can change that
+                    page.
+
+    Don't give fullpath to pageMajor, pageMinor, and datwiki! The script
+    will obtain the actual path by concatenating servicePath's value and
+    their values together.
+
+    minEditCount:   Edit count constraint for qualifying user.
+    minTime:        Membership duration constraint for qualifying user.
+"""
+
+__version__ = "2.0.1"
+__author__ = "Sorawee Porncharoenwase"
 
 import re, sys, time, os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+dirscript = os.path.dirname(__file__)
+sys.path.append(os.path.abspath(os.path.join(dirscript, "../..")))
 
-try: from lib import preload
-except:
-    print "E: Can't connect to library!"
-    sys.exit()
+from lib import preload
 
 import pwikipedia as pywikibot, pagegenerators, catlib, userlib, category
 from lib.libservice import service
 
 patName = re.compile(ur"(?<=:)(?!.*:).*(?=\]\])")
 
+def summaryWithTime():
+    return conf.summary + u" @ " + preload.getTime()
+
 def domove(source, dest):
+    """
+    To move a category. If bot hasn't administrator privilege,
+    it will tag speedydelete tag and clear content to prevent
+    interwikibot add interwiki link wrongly.
+    """
     pywikibot.output(u"Move from " + source + u" to " + dest)
     source = patName.search(source).group()
     dest = patName.search(dest).group()
-    robot = category.CategoryMoveRobot(source, dest, batchMode = True,
-        editSummary = conf.summary, inPlace = False, titleRegex = None, withHistory = False)
+    robot = category.CategoryMoveRobot(source, dest, batchMode=True,
+                                        editSummary=None, inPlace=False,
+                                        titleRegex=None, withHistory=False)
+    # editSummary=None to force library put default summary automatically
     robot.run()
     pageCat = pywikibot.Page(site, u"หมวดหมู่:" + source)
-    content = pageCat.get()
-    content = re.sub(ur"(\{\{speedydelete.*?\}\})", r"\1", content)
-    pageCat.put(content, conf.summary, force = True)
+    try:
+        content = pageCat.get()
+    except NoPage:
+        return
+    else:
+        content = re.sub(ur"(?s).*(\{\{speedydelete.*?\}\}).*",
+                        u"{{bots|allow=Nullzerobot}}\n\\1", content)
+        pageCat.put(content, conf.summary)
 
 def verify(name):
+    """Verify a username whether he is reliable."""
     user = userlib.User(pywikibot.getSite(), name)
-    if not user.isRegistered(): return False
-    if user.editCount() < conf.minEditCount: return False
-    if user.isBlocked(): return False
-    if(int(time.strftime("%Y%m%d%H%M%S", time.gmtime())) - \
-        int(user.registrationTime()) < conf.minTime): return False
+    if not user.isRegistered():
+        return False
+    if user.editCount() < conf.minEditCount:
+        return False
+    if user.isBlocked():
+        return False
+    nowTime = int(time.strftime("%Y%m%d%H%M%S", time.gmtime()))
+    regTime = int(user.registrationTime())
+    if(nowTime - regTime < conf.minTime):
+        return False
     return True
 
 def appendTable(title, arr):
-    if not arr: return    
+    """Append data to a table."""
+    if not arr:
+        return
     page = pywikibot.Page(site, title)
     text = page.get()
     text = re.sub(ur"(?m)^\|\}", u"\n".join(arr) + u"\n|}", text)
-    page.put(text, conf.summary + preload.getTime())
+    page.put(text, summaryWithTime())
 
 def main():
+    """Main function"""
     if conf.pendingParam in args:
         pywikibot.output(u"move pending entry")
         pageprocess = conf.pageMinor
@@ -50,30 +106,31 @@ def main():
     else:
         pageprocess = conf.pageMajor
         operation = u"major"
-    
+
     header, table, disable = service(serviceTitle=pageprocess,
-                                operation=operation,
-                                verifyFunc=verify,
-                                datwiki=conf.datwiki,
-                                site=site,
-                                summary=conf.summary)
-    
+                                    operation=operation,
+                                    verifyFunc=verify,
+                                    datwiki=conf.datwiki,
+                                    site=site,
+                                    summary=summaryWithTime)
+
     report = []
     pending = []
-    
+
     for i, line in enumerate(table):
         putline = u"|-\n| " + u" || ".join(line)
         if (operation == u"minor") or (not disable[i]):
             try:
                 domove(line[1], line[2])
-                templateStat = u"{{done}}"
+                templateStat = conf.doneTemplate
             except:
                 preload.error()
-                templateStat = u"{{not done}"
-            report.append(putline + u" || " + templateStat + u" " + preload.getTime())
+                templateStat = conf.notDoneTemplate
+            putline += u" || " + templateStat + u" " + preload.getTime()
+            report.append(putline)
         else:
             pending.append(putline)
-    
+
     appendTable(conf.pageReport, report)
     appendTable(conf.pageMinor, pending)
 

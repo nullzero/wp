@@ -4,22 +4,34 @@ Library to extract information from a service. Also clear the page
 of service so that it is ready for next customer.
 """
 
+__version__ = "1.0.1"
+__author__ = "Sorawee Porncharoenwase"
+
 import sys, difflib, re
-
-try: import preload
-except:
-    print "E: Can't connect to library!"
-    sys.exit()
-
+import preload
 import pwikipedia as pywikibot
 from lib import libwikitable, libinfo
 
 def service(serviceTitle, operation, verifyFunc, datwiki, site, summary):
+    """
+    Get:
+        Title of service's page
+        Key to read from config page,
+        Function to verify user
+        Config page, site
+        Summary function.
+
+    Function:
+        Clear service's page
+
+    Return:
+        Header of table
+        List of rows
+        Suspicious entry(/row)
+    """
     page = pywikibot.Page(site, serviceTitle)
     datwiki = pywikibot.Page(site, datwiki)
-    lastrev = int(libinfo.getdat(key = operation,
-                    filename = "lastrev",
-                    wikipage = datwiki))
+    lastrev = int(libinfo.getdat(key = operation, wikipage = datwiki))
     oldcontent = page.get()
     header, table = libwikitable.wiki2table(oldcontent)
     disable = [False] * len(table)
@@ -28,7 +40,8 @@ def service(serviceTitle, operation, verifyFunc, datwiki, site, summary):
 
     for version in hist:
         histlist.append((version, page.getOldVersion(version[0])))
-        if version[0] == lastrev: break
+        if version[0] == lastrev:
+            break
 
     hist = histlist
     hist.reverse()
@@ -47,15 +60,13 @@ def service(serviceTitle, operation, verifyFunc, datwiki, site, summary):
                     if entry == fentry:
                         disable[cnt] = True
                         break
-    
+
     newcontent = re.sub(ur"(?ms)^(\!.*?$\n).*?(^\|\})", ur"\1\2", oldcontent)
-    
+
     if oldcontent != newcontent:
         page = pywikibot.Page(site, page.title())
-        ret = page.put(newcontent, summary + preload.getTime())
-        libinfo.putdat(key = operation,
-            value = ret[2]['newrevid'],
-            filename = "lastrev", 
-            wikipage = datwiki)
-            
+        ret = page.put(newcontent, summary())
+        libinfo.putdat(key = operation, value = ret[2]['newrevid'],
+                        wikipage = datwiki)
+
     return header, table, disable

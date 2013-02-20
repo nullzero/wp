@@ -3,13 +3,11 @@
 Exception classes used throughout the library.
 """
 
+__version__ = "1.0.1"
+__author__ = "Sorawee Porncharoenwase"
+
 import sys
-
-try: import preload
-except:
-    print "E: Can't connect to library!"
-    sys.exit()
-
+import preload
 import pwikipedia as pywikibot
 
 class TableError(pywikibot.Error):
