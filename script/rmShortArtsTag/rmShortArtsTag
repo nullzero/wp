@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 
 try: from lib import preload
 except:
-    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
+    print "E: Can't connect to library!"
     sys.exit()
 
 from lib import libgenerator
@@ -34,7 +34,7 @@ def main():
                 page.put(content, u"บทความมีความยาวพอควรแล้ว นำป้ายสั้นมากออก")
 
 if __name__ == "__main__":
-    args, site = preload.pre(u"ลบป้ายสั้นมาก", lock = True)
+    args, site, conf = preload.pre(u"remove veryshort tag", lock = True)
     try: main()
     except: preload.posterror()
     preload.post()

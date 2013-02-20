@@ -101,6 +101,12 @@ remove(){
     esac
 }
 
+doc(){
+    cd bots/UnnamedBot
+    ls
+    pydoc "./../../$1"
+}
+
 cd "$current_dir"
 mode="$1"
 shift
@@ -135,6 +141,10 @@ case "$mode" in
 "packlog")
     clearlog
     end "เก็บปูม"
+    ;;
+"doc")
+    doc "$@"
+    end "แสดงเอกสารการใช้งานเรียบร้อย"
     ;;
 *)
     error "เรียกใช้พารามิเตอร์ไม่ถูกต้อง"

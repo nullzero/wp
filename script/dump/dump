@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 
 try: from lib import preload
 except:
-    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
+    print "E: Can't connect to library!"
     sys.exit()
 
 import pwikipedia as pywikibot
@@ -29,11 +29,11 @@ def main():
     filename = "DLFILE"
     cbreak = False
     lines = []
-    page = pywikibot.Page(site, u"ผู้ใช้:Nullzerobot/stats")
+    page = pywikibot.Page(site, conf.pagename)
 
     with open(filename, "r") as f:
         for line in f:
-            if line.startswith("th"):
+            if line.startswith(conf.sitecode):
                 cbreak = True
                 lines.append(line.split(' '))
             elif cbreak:
@@ -52,10 +52,10 @@ def main():
         content.append(u"| [[%s]] || %s\n|-\n" % (name.decode("utf-8").replace(u"_", u" "), lines[ptr][2].decode("utf-8")))
     content = u'{| class = "wikitable"\n|-\n! บทความ !! จำนวนยอดผู้เข้าชม\n|-\n' + u"".join(content) + u'|}'
     print content
-    page.put(content, u"ปรับปรุงรายการ")
+    page.put(content, conf.summary)
     
 if __name__ == "__main__":
-    args, site = preload.pre(u"ปรับปรุงสถิติการเข้าชม", lock = True)
+    args, site, conf = preload.pre(u"update pageview statistics", lock = True)
     try: main()
     except: preload.posterror()
     preload.post()

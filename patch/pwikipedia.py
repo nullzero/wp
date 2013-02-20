@@ -154,7 +154,7 @@ def recentchanges(self, number=100, rcstart=None, rcend=None, rcshow=None,
                     yield page, i['timestamp'], i['newlen'], True, i['user'], comment
         if not repeat:
             break
-        time.sleep(10)
+        time.sleep(30)
 
 Site.recentchanges = recentchanges
 

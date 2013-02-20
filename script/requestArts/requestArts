@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 
 try: from lib import preload
 except:
-    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
+    print "E: Can't connect to library!"
     sys.exit()
 
 import pwikipedia as pywikibot
@@ -48,7 +48,7 @@ def main():
     pagewrite.put(content, u"ปรับปรุงรายการ")
 
 if __name__ == "__main__":
-    args, site = preload.pre(u"ปรับปรุงรายการบทความที่ต้องการ", lock = True)
+    args, site, conf = preload.pre(u"update request articles", lock = True)
     try: main()
     except: preload.posterror()
     preload.post()

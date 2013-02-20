@@ -6,19 +6,21 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 
 try: from lib import preload
 except:
-    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
+    print "E: Can't connect to library!"
     sys.exit()
 
 from lib import libdate
 import pwikipedia as pywikibot
     
 def main():
+    readTitle = conf.readTitle
+    writeTitle = conf.writeTitle
     today = libdate.date.today()
     year = today.year + 543
     month = libdate.monthThai(today.month)
     day = today.day
     
-    page = pywikibot.Page(site, u"แม่แบบ:วันสำคัญ")
+    page = pywikibot.Page(site, readTitle)
     content = page.get()
     
     pat = re.compile(u"\n\*\ \[\[(.*?)\ (.*?)\]\]\ :\ (.*)")
@@ -67,13 +69,12 @@ def main():
         wcontent += u"* [[%s %s]] : %s\n" % (u'?' if saveall[ip][0] == 0 else str(saveall[ip][0]), 
                                             libdate.monthThaiAbbr(saveall[ip][1]), saveall[ip][2])
     
-    wcontent = wcontent[:-1]
-    page = pywikibot.Page(site, u"แม่แบบ:เหตุการณ์ปัจจุบัน/วันสำคัญ")
-    
+    wcontent = wcontent.strip()
+    page = pywikibot.Page(site, writeTitle)
     if page.get() != wcontent: page.put(wcontent, u"อัปเดตรายชื่อวันสำคัญโดยบอต")
 
 if __name__ == "__main__":
-    args, site = preload.pre(u"ปรับปรุงวันสำคัญ", lock = True)
+    args, site, conf = preload.pre(u"update important date", lock = True)
     try: main()
     except: preload.posterror()
     preload.post()

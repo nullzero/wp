@@ -6,26 +6,25 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 
 try: from lib import preload
 except:
-    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
+    print "E: Can't connect to library!"
     sys.exit()
 
 import pwikipedia as pywikibot
 from lib import libcleaner
 
 def debug():
-    print libcleaner.clean(u"""[[_asd_asd]]a
-""")
+    print libcleaner.clean(conf.debugtext)
 
 def main():
     if args:
         for pagename in args:
             page = pywikibot.Page(site, pagename)
-            page.put(libcleaner.clean(page.get()), u"เก็บกวาด")
+            page.put(libcleaner.clean(page.get()), conf.summary)
     else:
         debug()
 
 if __name__ == "__main__":
-    args, site = preload.pre(u"เก็บกวาด")
+    args, site, conf = preload.pre(u"clean articles")
     try: main()
     except: preload.posterror()
     preload.post()

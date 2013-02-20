@@ -1,32 +1,37 @@
 # -*- coding: utf-8  -*-
+"""
+Library to convert wikitable to list of data.
+
+Constraint:
+    Can be used only when the table doesn't have any markup such as
+        'rowspan', 'align' (except markup for all cells).
+    The table should be a normal table; Its header should be at only the first row.
+    There is no caption (|+).
+    Don't support multiline cell.
+    All rows must have the same length of columns.
+"""
 
 import sys, re
 
 try: import preload
 except:
-    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
+    print "E: Can't connect to library!"
     sys.exit()
 
 import pwikipedia as pywikibot
-from lib import libstring
-
-"""
-ใช้แปลงข้อมูล wikitable มาเป็น list ข้อมูล
-ข้อจำกัด:
-- ใช้ได้กับเฉพาะตารางที่ไม่มี markup พิเศษ เช่น rowspan align (ยกเว้นกรณี markup ทั้งตารางที่สามารถมีได้)
-  - อาจรองรับ row/col span ในภายหลัง
-- ไม่มี caption |+
-- มีหัวตารางอยู่บนสุดเพียงบรรทัดเดียวเท่านั้น
-- ตารางข้อมูลต้องครบทุกช่อง
-
-"""
-
-class TableError(pywikibot.Error):
-    pass
+from lib import libstring, libexception
     
-def wiki2table(content, tag):
-    obj = re.search(ur"(?s)" + re.escape(tag[0]) + ur"(.*?)" + re.escape(tag[1]), content)
-    if not obj: raise TableError
+def wiki2table(content):
+    """
+    Get text. Return information in table of that text:
+        Header
+        List of data
+    
+    Known issues:
+        What is the meaning of '||' at the beginning of line?
+    """
+    obj = re.search(ur"(?ms)(^\{\|.*?^\|\})", content)
+    if not obj: raise libexception.TableError
 
     content = obj.group(1)
     content = libstring.repSub(ur"(?m)(^\!.*?)\!\!", u"\\1\n!", content)
@@ -42,11 +47,7 @@ def wiki2table(content, tag):
     linelist = []
     
     for line in lines:
-        if line.startswith(u"|-"):
-            if linelist:
-                table.append(linelist)
-                linelist = []
-        elif line.startswith(u"|}"):
+        if line.startswith(u"|-") or line.startswith(u"|}"):
             if linelist:
                 table.append(linelist)
                 linelist = []
@@ -54,7 +55,7 @@ def wiki2table(content, tag):
             linelist.append(line[1:].strip())
     
     for line in table:
-        if len(line) != len(header): raise TableError
+        if len(line) != len(header): raise libexception.TableError
     
     header = (re.search(ur"(?m)^\{\|.*?$", content).group(), header)
     return header, table

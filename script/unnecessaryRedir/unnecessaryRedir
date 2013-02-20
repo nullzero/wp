@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 
 try: from lib import preload
 except:
-    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
+    print "E: Can't connect to library!"
     sys.exit()
 
 import pwikipedia as pywikibot
@@ -30,7 +30,7 @@ def main():
             #i.delete(u"", True, False)
 
 if __name__ == "__main__":
-    args, site = preload.pre(u"ลบหน้าเปลี่ยนทางไม่จำเป็น")
+    args, site, conf = preload.pre(u"remove unnecessary redirect")
     try: main()
     except: preload.posterror()
     preload.post()

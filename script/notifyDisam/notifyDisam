@@ -6,18 +6,15 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 
 try: from lib import preload
 except:
-    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
+    print "E: Can't connect to library!"
     sys.exit()
 
 import pwikipedia as pywikibot
 
-DEBUG = False
-
-startChecking = 1
-insertDisamT = None
+startChecking = 30
 container = {}
 
-def notify(user, scontent):
+def notify(user, scontent, insertDisamT):
     if user == u"JBot": return
     usertalk = pywikibot.Page(site, u"User talk:" + user)
     
@@ -57,14 +54,13 @@ def dict2str(d):
     return s
     
 def flush():
-    global insertDisamT
     insertDisamT = pywikibot.Page(site, u"User:Nullzerobot/ข้อความ/insert-disam").get()
     for user in container:
-        notify(user, dict2str(container[user]))
+        notify(user, dict2str(container[user]), insertDisamT)
 
 def check(revision):
     page = revision[0]
-    pywikibot.output(u"check %s @ %s" % (page.title(), preload.getTime()))
+    pywikibot.output(u"check page %s @ %s" % (page.title(), preload.getTime()))
     revid = revision[1]['revid']
     oldrevid = revision[1]['old_revid']
     if oldrevid == 0: contentold = u""
@@ -105,7 +101,7 @@ def main():
             preload.error()
             
 if __name__ == "__main__":
-    args, site = preload.pre(u"แจ้งโยงไปยังหน้าแก้กำกวม", lock = True)
+    args, site, conf = preload.pre(u"notify linking to disambigous page", lock = True)
     try: main()
     except: preload.posterror()
     preload.post()

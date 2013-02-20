@@ -1,49 +1,92 @@
-# -*- coding: utf-8  -*-
+    # -*- coding: utf-8  -*-
+"""
+Library to set basic environment. It also provide frequently used function.
+This library should be imported in every script that require to connect to
+pywikipedia library
+"""
 
-import sys, os, traceback, datetime, inspect
+import sys, os, traceback, datetime, imp
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../patch")))
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../pywikipedia")))
+dirlib = os.path.dirname(__file__)
+sys.path.append(os.path.abspath(os.path.join(dirlib, "..")))
+sys.path.append(os.path.abspath(os.path.join(dirlib, "../patch")))
+sys.path.append(os.path.abspath(os.path.join(dirlib, "../pywikipedia")))
 
 try: import wikipedia as pywikibot
 except:
     print traceback.format_exc()
+    print "E: Can't connect to library!"
     sys.exit()
 
-def error(): pywikibot.output(traceback.format_exc().decode("utf-8"))
-def getTime(): return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+from conf import glob as conf
 
-summarySuffix = u" หากผิดพลาดโปรดแจ้ง[[User talk:Nullzero|ที่นี่]]"
+def error(e=None):
+    """
+    If error message is given, print that error message. Otherwise,
+    print traceback instead.
+    """
+    if e: pywikibot.output(u"E: " + e)
+    else: pywikibot.output(u"E: " + traceback.format_exc().decode("utf-8"))
+    
+def getTime():
+    """Print timestamp."""
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-global_name = None
-global_lockfile = None
+fullname = None
+lockfile = None
+dirname = os.path.abspath(os.path.dirname(sys.argv[0]))
+basename = os.path.basename(sys.argv[0])
 
 def pre(name, lock = False):
+    """
+    Return argument list, site object, and configuration of the script.
+    This function also handles default arguments, generates lockfile
+    and halt the script if lockfile exists before.
+    """
+    global fullname, lockfile
     pywikibot.handleArgs("-log")
-    global global_name, global_lockfile
-    global_name = name
-    pywikibot.output(u"สคริปต์" + global_name + u"เริ่มทำงานในเวลา " + getTime())
+    fullname = name
+    pywikibot.output(u"The script " + fullname + u". Start at " + getTime())
     if lock:
-        global_lockfile = os.path.join("/tmp", os.path.basename(sys.argv[0]) + ".wp.lock")
-        if os.path.exists(global_lockfile):
-            pywikibot.output(u"!!! มีการล็อกอยู่อยู่")
+        lockfile = os.path.join("/tmp", basename + ".wp.lock")
+        if os.path.exists(lockfile):
+            error(u"Lockfile found. Unable to execute the script.")
             pywikibot.stopme()
             sys.exit()
-        open(global_lockfile, 'w').close()
-    return pywikibot.handleArgs(), pywikibot.getSite()
+        open(lockfile, 'w').close()
+        
+    confpath = os.path.abspath(os.path.join(dirlib, "../conf", basename + ".py"))
+    if os.path.exists(confpath): module = imp.load_source("conf", confpath)
+    else: module = None
+    return pywikibot.handleArgs(), pywikibot.getSite(), module
 
 def post(unlock = True):
-    if unlock and global_lockfile:
-        try: os.remove(global_lockfile)
-        except: pywikibot.output(u"!!! ลบไฟล์ล็อกไม่ได้")
-    pywikibot.output(u"สคริปต์" + global_name + u"หยุดทำงานในเวลา " + getTime())
+    """
+    This function removes throttle file. It also removes lockfile unless 
+    unlock variable is set to False
+    """
+    if unlock and lockfile:
+        try: os.remove(lockfile)
+        except: error(u"Unable to remove lockfile.")
+    pywikibot.output(u"The script " + fullname + u". Stop at " + getTime())
     pywikibot.stopme()
     sys.exit()
 
 def posterror():
+    """This function forces program stop without removing lockfile"""
     error()
-    pywikibot.output(u"!!! จบการทำงานทันที")
+    error(u"Suddenly halt!")
     post(unlock = False)
+
+def deUnicode(st):
+    """Return normal quoted string."""
+    try: st = str(st)
+    except UnicodeEncodeError: st = st.encode("utf-8")
+    return st
+
+def enUnicode(st):
+    """Return unicode quoted string."""
+    return unicode(st)
 
 """
 def simplifyPath(path):

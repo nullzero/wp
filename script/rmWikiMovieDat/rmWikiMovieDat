@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 
 try: from lib import preload
 except:
-    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
+    print "E: Can't connect to library!"
     sys.exit()
 
 from lib import libcleaner, libgenerator
@@ -138,7 +138,7 @@ def main():
             preload.error()
             
 if __name__ == "__main__":
-    args, site = preload.pre(u"ลบข้อมูลไม่จำเป็นตามโครงการวิกิภาพยนตร์")
+    args, site, conf = preload.pre(u"remove unnecessary data in actor articles")
     try: main()
     except: preload.posterror()
     preload.post()
