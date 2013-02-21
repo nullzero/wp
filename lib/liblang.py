@@ -3,9 +3,12 @@
 Library to manage everything about language (especially Thai language)
 """
 
+__version__ = "1.0.1"
+__author__ = "Sorawee Porncharoenwase"
+
 import re, sys
 import preload    
-import libstring, movepages
+import libstring
 import pwikipedia as pywikibot
 
 ThaiBegin = u"\u0e01"
@@ -153,7 +156,8 @@ checkVowel = u"แโใไะาๅำัิีึืํฺุู็่้๊�
 
 def fixRepetedVowelTitle(page):
     """
-    If found impossible vowel arrangement, correct by moving that page.
+    If found impossible vowel arrangement in title, 
+    correct by moving that page.
     """
     opagetitle = page.title()
     pagetitle = opagetitle
@@ -172,6 +176,7 @@ def fixRepetedVowelTitle(page):
             page.delete(reason=reason, prompt=False, mark=True)
     
 def fixRepetedVowel(content):
+    """If found impossible vowel arrangement in text, correct it."""
     for i in checkVowel:
         content = re.sub(i + u"+", i, content)
     return content
@@ -180,18 +185,22 @@ import random
 from subprocess import Popen, PIPE, STDOUT
 
 def randomCheckRepetition(s):
-    s = s.encode("utf-8")
-    s = re.sub("", "\n", re.sub("\n", "", s))
+    """Helper function to check repetition of substring."""
+    s = unicode(s)
+    s = re.sub(u"", u"\n", re.sub(u"\n", u"", s))
     size = len(s)
-    begin = random.randint(0, max(0, size - 700 * 2))
-    end = min(begin + 700 * 2, size)
-    if len(s[begin:end]) == 0: return 0
-    p = Popen([preload.File(__file__, "rle2")], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+    begin = random.randint(0, max(0, size - 700*2))
+    end = min(begin + 700*2, size)
+    if not s[begin:end]:
+        return 0
+    p = Popen([preload.File(__file__, "rle2")],
+                stdout=PIPE, stdin=PIPE, stderr=STDOUT)
     output = p.communicate(input=s[begin:end])[0]
     return int(output)
 
 def checkRepetition(s):
-    lim = 3
-    for i in xrange(lim):
+    """Check repetition of substring."""
+    rnd = 3
+    for i in xrange(rnd):
         res += randomCheckRepetition(s)
     return res // lim

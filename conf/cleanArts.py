@@ -3,10 +3,6 @@
 This is a user configuration file.
 """
 
-"""
-Begin configuration section
-"""
-
 summary = u"เก็บกวาด"
 debugtext = u"""[[_asd_asd]]a
 ::{|
@@ -15,8 +11,18 @@ debugtext = u"""[[_asd_asd]]a
 |-
 |321
 |}
-"""
-
-"""
-End configuration section
+asd
+    asdad     ad
+    adsas     dsa
+asd   asdasd
+asd
+<source>
+  asasdasdasd         asd
+asds             asdasda
+</source>
+asdasddd             asd
+<source>
+adddddddss   sdsdsd
+</source>
+addd                   ssssssssssssss
 """

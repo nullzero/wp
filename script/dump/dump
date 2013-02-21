@@ -1,30 +1,32 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+"""Download dumpfile, extract pageview, and write table to wiki page."""
 
-import datetime, urllib, re, os, sys
+__version__ = "2.0.1"
+__author__ = "Sorawee Porncharoenwase"
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-
-try: from lib import preload
-except:
-    print "E: Can't connect to library!"
-    sys.exit()
-
+import urllib, re, os, sys
+sys.path.append(os.path.abspath("../.."))
+from lib import preload
 import pwikipedia as pywikibot
 
 def dlProgress(count, blockSize, totalSize):
+    """Show download progress."""
     percent = int(count * blockSize * 100 / totalSize)
     sys.stdout.write("\r...%d%%" % percent)
     sys.stdout.flush()
 
 def main():
-    year = datetime.date.today().year
-    month = datetime.date.today().month
-    url = "http://dumps.wikimedia.org/other/pagecounts-raw/%s/%s-%02d" % (year, year, int(month))
+    year = libdate.date.today().year
+    month = libdate.date.today().month
+    url = "http://dumps.wikimedia.org/other/pagecounts-raw/%s/%s-%02d" % \
+                                                    (year, year, int(month))
     f = urllib.urlopen(url)
     content = f.read()
     filename = re.findall("pagecounts.*?\.gz", content)[-1]
-    urllib.urlretrieve(os.path.join(url, filename), "DLFILE.gz", reporthook=dlProgress)
+    urllib.urlretrieve(os.path.join(url, filename),
+                        "DLFILE.gz",
+                        reporthook=dlProgress)
     os.system("gunzip --force DLFILE.gz")
     filename = "DLFILE"
     cbreak = False
@@ -35,27 +37,38 @@ def main():
         for line in f:
             if line.startswith(conf.sitecode):
                 cbreak = True
-                lines.append(line.split(' '))
+                lines.append(line.split(" "))
             elif cbreak:
                 break
 
-    lines = sorted(lines, key=lambda x: int(x[2]), reverse = True)
+    lines = sorted(lines, key=lambda x: int(x[2]), reverse=True)
     content = u""
     content = []
     ptr = -1
     while len(content) <= 100:
         ptr += 1
         name = eval('"%s"' % urllib.unquote(urllib.unquote(lines[ptr][1])))
-        if ":" in name: continue
-        if re.search("^undefined$", name, flags = re.IGNORECASE) is not None: continue
-        if name == u"th": continue
-        content.append(u"| [[%s]] || %s\n|-\n" % (name.decode("utf-8").replace(u"_", u" "), lines[ptr][2].decode("utf-8")))
-    content = u'{| class = "wikitable"\n|-\n! บทความ !! จำนวนยอดผู้เข้าชม\n|-\n' + u"".join(content) + u'|}'
-    print content
+        if ":" in name:
+            continue
+        if re.search("(?i)^undefined$", name):
+            continue
+        if name == u"th":
+            continue
+        content.append(u"|-\n| [[%s]] || %s\n" % (
+                                            unicode(name).replace(u"_", u" "),
+                                            unicode(lines[ptr][2])))
+    content = u"""{| class = "wikitable"
+|-
+! บทความ !! จำนวนยอดผู้เข้าชม
+""" + u"".join(content) + u"|}"
+    pywikibot.output(content)
     page.put(content, conf.summary)
     
 if __name__ == "__main__":
     args, site, conf = preload.pre(u"update pageview statistics", lock = True)
-    try: main()
-    except: preload.posterror()
-    preload.post()
+    try:
+        main()
+    except:
+        preload.posterror()
+    else:
+        preload.post()

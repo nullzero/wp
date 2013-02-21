@@ -1,14 +1,17 @@
 #!/usr/bin/python
 # -*- coding: utf-8  -*-
+"""
+Clean pages which are given in argument list. If there is no argument,
+it will clean sample text instead. To configure the cleaning, pleas look
+at lib.libcleaner
+"""
+
+__version__ = "2.0.1"
+__author__ = "Sorawee Porncharoenwase"
 
 import sys, os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-
-try: from lib import preload
-except:
-    print "E: Can't connect to library!"
-    sys.exit()
-
+sys.path.append(os.path.abspath("../.."))
+from lib import preload
 import pwikipedia as pywikibot
 from lib import libcleaner
 
@@ -25,6 +28,9 @@ def main():
 
 if __name__ == "__main__":
     args, site, conf = preload.pre(u"clean articles")
-    try: main()
-    except: preload.posterror()
-    preload.post()
+    try:
+        main()
+    except:
+        preload.posterror()
+    else:
+        preload.post()

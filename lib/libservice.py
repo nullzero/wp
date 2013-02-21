@@ -66,7 +66,7 @@ def service(serviceTitle, operation, verifyFunc, datwiki, site, summary):
     if oldcontent != newcontent:
         page = pywikibot.Page(site, page.title())
         ret = page.put(newcontent, summary())
-        libinfo.putdat(key = operation, value = ret[2]['newrevid'],
-                        wikipage = datwiki)
+        libinfo.putdat(key=operation, value=ret[2]['newrevid'],
+                        wikipage=datwiki)
 
     return header, table, disable

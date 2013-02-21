@@ -7,13 +7,14 @@ __version__ = "1.0.1"
 __author__ = "Sorawee Porncharoenwase"
 
 import datetime, sys
-import preload
 
 def wrapMonth(m):
     """Convert zero-based month number to zero-based month number."""
     m -= 1
-    if m < 0: m += 12
-    if m >= 12: m -= 12
+    if m < 0:
+        m += 12
+    if m >= 12:
+        m -= 12
     return m
 
 def weekdayThai(d):
@@ -42,10 +43,14 @@ def monthThaiAbbr(m):
 def getNumDay(year, month):
     """Return length of day in given month"""
     if month == 2:
-        if year % 400 == 0: return 29
-        elif year % 100 == 0: return 28
-        elif year % 4 == 0: return 29
-        return 28
+        if year % 400 == 0:
+            return 29
+        elif year % 100 == 0:
+            return 28
+        elif year % 4 == 0:
+            return 29
+        else:
+            return 28
         
     return [0, 31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month]
 

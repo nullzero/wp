@@ -1,107 +1,146 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+"""Notify user that link a link to disambiguous page."""
 
-import sys, os, re, datetime, difflib
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+__version__ = "2.0.1"
+__author__ = "Sorawee Porncharoenwase"
 
-try: from lib import preload
-except:
-    print "E: Can't connect to library!"
-    sys.exit()
-
+import sys, os, re, difflib
+sys.path.append(os.path.abspath("../.."))
+from lib import preload
+from lib import libdate
 import pwikipedia as pywikibot
 
-startChecking = 30
-container = {}
+if __name__ == "__main__":
+    startChecking = 30
+    container = {}
 
-def notify(user, scontent, insertDisamT):
-    if user == u"JBot": return
+def dict2str(d):
+    s = u""
+    for title in d:
+        s += u"; [[" + title + u"]]\n"
+        s += "".join(map(lambda x: u"* [[" + x + u"]]\n", d[title]))
+    return s
+
+def notify(user, dic, insertDisamT):
+    pywikibot.output(u"notifying %s..." % user)
+    if user in conf.exceptionList:
+        return
     usertalk = pywikibot.Page(site, u"User talk:" + user)
     
-    if not usertalk.exists():
-        pywikibot.output(u">>> ไม่มีหน้านี้มาก่อน - ไอพี ไม่เตือน")
+    for title, linkset in dic.items():
+        alllinks = [link.title() for link in \
+                                pywikibot.Page(site, title).linkedPages()]
+        dic[title] = filter(lambda link: link in alllinks, list(linkset))
+        if not dic[title]:
+            del dic[title]
+    
+    if not dic:
         return
     
+    scontent = dict2str(dic)
     message = insertDisamT
-    message = message.replace(u"<!-- ลิงก์ -->", scontent)
-    message = message.replace(u"<!-- ชื่อผู้ใช้ -->", user)
-    message = message.replace(u"<!-- วันที่ -->", "%d/%d" % (datetime.datetime.today().day,
-        datetime.datetime.today().month))
+    message = message.replace(conf.linkPlaceholder, scontent)
+    message = message.replace(conf.userPlaceholder, user)
+    message = message.replace(conf.datePlaceholder, "%d/%d" % (
+                        libdate.date.today().day, libdate.date.today().month))
     
     try:
-        usertalk.put(usertalk.get() + u"\n\n" + message + u" --~~~~", u"แจ้งใส่ลิงก์โยงไปยังหน้าแก้กำกวม")
-    except: preload.error()
+        usertalk.put(u"%s\n\n%s --~~~~" % (usertalk.get(), message),
+                                            conf.summary)
+    except:
+        preload.error()
     
-    pywikibot.output(u">>> เรียบร้อย!")
+    pywikibot.output(u">>> done!")
+
+def _debug():
+    container[u"Nullzero"] = {}
+    container[u"Nullzero"][u"A"] = set()
+    container[u"Nullzero"][u"A"].add(u"อักษรภาพ")
+    container[u"Nullzero"][u"A"].add(u"วัว")
+    container[u"Nullzero"][u"A"].add(u"nonexist")
+    container[u"Nullzero"][u"Z"] = set()
+    container[u"Nullzero"][u"Z"].add(u"nonexist")
+    container[u"Nullzero"][u"Z"].add(u"nonexist!")
+    notify(u"Nullzero", container[u"Nullzero"],
+            pywikibot.Page(site, conf.messageTemplate).get())
 
 def save(user, title, links):
     pywikibot.output(u">>> save %s %s" % (user, title))
     global container
     if user in container:
         if title in container[user]:
-            container[user][title] = container[user][title] | links
+            container[user][title] |= links
         else:
             container[user][title] = links
     else:
         container[user] = {}
         container[user][title] = links
-
-def dict2str(d):
-    s = u""
-    for title in d:
-        s += u"; [[" + title + u"]]\n"
-        s += "".join(map(lambda x: u"* [[" + x + u"]]\n", list(d[title])))
-    return s
     
 def flush():
-    insertDisamT = pywikibot.Page(site, u"User:Nullzerobot/ข้อความ/insert-disam").get()
+    insertDisamT = pywikibot.Page(site, conf.messageTemplate).get()
     for user in container:
-        notify(user, dict2str(container[user]), insertDisamT)
+        notify(user, container[user], insertDisamT)
 
 def check(revision):
     page = revision[0]
     pywikibot.output(u"check page %s @ %s" % (page.title(), preload.getTime()))
-    revid = revision[1]['revid']
-    oldrevid = revision[1]['old_revid']
-    if oldrevid == 0: contentold = u""
-    else: contentold = page.getOldVersion(oldrevid)
+    revid = revision[1]["revid"]
+    oldrevid = revision[1]["old_revid"]
+    
+    if oldrevid == 0:
+        contentold = u""
+    else:
+        contentold = page.getOldVersion(oldrevid)
+        
     contentnew = page.get()
     addedlinks = set(pywikibot.extractLinkedPages(contentnew, page)) - \
-        set(pywikibot.extractLinkedPages(contentold, page))
+                set(pywikibot.extractLinkedPages(contentold, page))
     
     disamlinks = []
     
     for link in addedlinks:
-        if u":" in link.title(): continue
-        if link.title().startswith(u"#"): continue
+        if u":" in link.title():
+            continue
+        if link.title().startswith(u"#"):
+            continue
         try:
-            if link.isRedirectPage(): link = link.getRedirectTarget()
-            if link.isDisambig(): disamlinks.append(link.title())
-        except: preload.error()
+            lname = link.title()
+            if link.isRedirectPage():
+                link = link.getRedirectTarget()
+            if link.isDisambig():
+                disamlinks.append(lname)
+        except:
+            preload.error()
     
     if len(disamlinks) != 0:
-        save(revision[1]['user'], revision[1]['title'], set(disamlinks))
+        save(revision[1]["user"], revision[1]["title"], set(disamlinks))
     
 def main():
-    gen = site.recentchanges(number = startChecking,
-            rcshow = ['!redirect', '!bot'],
-            namespace = "|".join([str(x) for x in xrange(0, 16, 2) if x != 2]), 
-            repeat = True,
-            returndict = True)
+    gen = site.recentchanges(number=startChecking,
+            rcshow=["!redirect", "!bot"],
+            namespace="|".join([str(x) for x in xrange(0, 16, 2) if x != 2]),
+            repeat=True,
+            returndict=True)
             
-    todaynum = datetime.datetime.today().day
+    todaynum = libdate.date.today().day
     for revision in gen:
         try:
             check(revision)
-            if todaynum != datetime.datetime.today().day:
+            if todaynum != libdate.date.today().day:
                 flush()
                 container = {}
-                todaynum = datetime.datetime.today().day
+                todaynum = libdate.date.today().day
         except:
             preload.error()
-            
+
 if __name__ == "__main__":
-    args, site, conf = preload.pre(u"notify linking to disambigous page", lock = True)
-    try: main()
-    except: preload.posterror()
-    preload.post()
+    args, site, conf = preload.pre(u"notify linking to disambigous page",
+                                    lock = True)
+    try:
+        #_debug()
+        main()
+    except:
+        preload.posterror()
+    else:
+        preload.post()

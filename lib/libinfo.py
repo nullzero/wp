@@ -81,7 +81,8 @@ def putdat(key, value, filename = None, wikipage = None):
         try:
             with open(fullfilename, "r") as f:
                 text = unicode(f.read())
-        except: pass
+        except IOError:
+            pass
             
         with open(fullfilename, "w") as f:
             f.write(preload.deunicode(changeValue(key, value, text)))

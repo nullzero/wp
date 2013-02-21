@@ -1,7 +1,10 @@
 /*
 TASK: oct27_rle2
 LANG: C++
+AUTHOR: Sorawee Porncharoenwase
 */
+
+// Prob. statement: http://theory.cpe.ku.ac.th/~pramook/ioi/2011/oct27_rle2.pdf
 
 #include <iostream>
 #include <string>

@@ -36,15 +36,13 @@ __version__ = "2.0.1"
 __author__ = "Sorawee Porncharoenwase"
 
 import re, sys, time, os
-dirscript = os.path.dirname(__file__)
-sys.path.append(os.path.abspath(os.path.join(dirscript, "../..")))
-
+sys.path.append(os.path.abspath("../.."))
 from lib import preload
-
 import pwikipedia as pywikibot, pagegenerators, catlib, userlib, category
 from lib.libservice import service
 
-patName = re.compile(ur"(?<=:)(?!.*:).*(?=\]\])")
+if __name__ == "__main__":
+    patName = re.compile(ur"(?<=:)(?!.*:).*(?=\]\])")
 
 def summaryWithTime():
     return conf.summary + u" @ " + preload.getTime()
@@ -63,7 +61,7 @@ def domove(source, dest):
                                         titleRegex=None, withHistory=False)
     # editSummary=None to force library put default summary automatically
     robot.run()
-    pageCat = pywikibot.Page(site, u"หมวดหมู่:" + source)
+    pageCat = pywikibot.Page(site, u"Category:" + source)
     try:
         content = pageCat.get()
     except NoPage:
@@ -136,6 +134,9 @@ def main():
 
 if __name__ == "__main__":
     args, site, conf = preload.pre(u"move category automatically", lock = True)
-    try: main()
-    except: preload.posterror()
-    preload.post()
+    try:
+        main()
+    except:
+        preload.posterror()
+    else:
+        preload.post()

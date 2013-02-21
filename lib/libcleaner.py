@@ -8,7 +8,6 @@ __author__ = "Sorawee Porncharoenwase"
 
 import sys, os, re
 import preload
-import pwikipedia as pywikibot
 from lib import liblang
 
 def sectionClean(s):
@@ -27,7 +26,14 @@ def wikitableClean(s):
 
 def consecutiveSpace(s):
     """Remove consecutive spaces."""
-    return re.sub(u"[ \t\r\f\v]+", u" ".group())
+    s = s.group()
+    prefix = u""
+    if s.startswith(u"</source>"):
+        prefix = u"</source>"
+        s = s[len(u"</source>"):]
+    for pat in patListSpace:
+        s = pat[0].sub(pat[1], s)
+    return prefix + s
 
 def clean(s):
     """Clean text!"""
@@ -37,7 +43,6 @@ def clean(s):
     return s
 
 patList = []
-
 patList.append((ur"[\t\r\f\v]", u" "))
 # change all whitespaces to space!
 patList.append((ur"_(?=[^\[\]]*\]\])", u" "))
@@ -51,7 +56,7 @@ patList.append((ur"(?m)^(=+) *(.*?) *(=+) *$", ur"\1 \2 \3"))
 patList.append((ur"(?m)^= (.*?) =$", ur"== \1 =="))
 # don't use first-level headings
 patList.append((ur"(?m)^==+\ .*?\ ==+$", sectionClean))
-"""call dellink!"""
+"""call sectionClean!"""
 tablemarkup = [u"rowspan", u"align", u"colspan", u"width", u"style"]
 patList.append((u"(%s) *= *" % u"|".join(tablemarkup), ur"\1 = "))
 # clean whitespace around equal sign
@@ -78,33 +83,48 @@ patList.append((ur"(?m)^(:*)([\*#]*) \{\|", ur"\1\2{|"))
 # but openning tag of table must stick with front symbol
 # "$:::** {|$" => "$:::**{|$"
 patList.append((ur"(?m)^\|(?![\}\+\-]) *", u"| "))
-# clean whitespace for template and table
+# clean whitespace for template and table, except |+ |- |}
 # "$|asdasd$" => "$| asdasd$"
 patList.append((u"(?ms)^\{\|.*^\|\}.*?$", wikitableClean))
 """call wikitable!"""
-patList.append((u"<references */ *>", u"{{รายการอ้างอิง}}"))
-# FIXME: call this on some pages makes reference error.
+patList.append((u"<references */ *>(?!.*<references */ *>)",
+                u"{{รายการอ้างอิง}}"))
+# L10n / if there are more than one reference tags, don't change!
 patList.append((u"(?i)\{\{ *Reflist *", u"{{รายการอ้างอิง"))
 # L10n
-#patList.append((u"(?m)^(?! ).*?$", consecutiveSpace))
-# FIXME: source code!
-""" Section ========================================================="""
-patListSection = []
+patList.append((ur"(?ms)((?:</source>)?)(?:(?!</?source>).)*(?=<source>|\Z)",
+                consecutiveSpace))
+"""call consecutiveSpace!"""
 
+""" Section ========================================================="""
+
+patListSection = []
 patListSection.append((u"'''", u""))
 # remove all bold markup
 patListSection.append((u"''", u""))
 # remove all italic markup
 patListSection.append((u"<(?!/?(ref|sup|sub)).*?>", u""))
 # remove all html markup except refupub
-""" Table ========================================================="""
-patListTable = []
 
+""" Table ==========================================================="""
+
+patListTable = []
 patListTable.append((ur"(?m)^(\|[\-\+\}]?) *", ur"\1 "))
+# "$|-abc$" => "$|- abc$", "$|-$" => "$|- $"
 patListTable.append((ur" *\|\| *", u" || "))
+# "$z||a$" => "$z || a$"
 patListTable.append((u" *!! *", u" !! "))
+# "$z!!a$" => "$z !! a$"
 patListTable.append((ur"(?m)^\|([\}\-$]) *$", ur"|\1"))
+# "$|- $" => "$|-$"
 patListTable.append((u"(?m)^! *", u"! "))
+# "$!abc !! asd$" => "$! abc !! asd$"
+
+""" Space ==========================================================="""
+patListSpace = []
+patListSpace.append((u"(?m)(?<=^)(?! )(.*?) +", ur"\1 "))
+# "$abc    def   ghi$" => "$abc def ghi$"
+# except: that line is in source tag or that line starts with space
     
 for i, pat in enumerate(patList):
     patList[i] = (re.compile(pat[0]), pat[1])
@@ -114,3 +134,6 @@ for i, pat in enumerate(patListTable):
     
 for i, pat in enumerate(patListSection):
     patListSection[i] = (re.compile(pat[0]), pat[1])
+    
+for i, pat in enumerate(patListSpace):
+    patListSpace[i] = (re.compile(pat[0]), pat[1])
