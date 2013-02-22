@@ -15,20 +15,18 @@ from lib import preload
 import pwikipedia as pywikibot
 from lib import libcleaner
 
-def debug():
+def _debug():
     print libcleaner.clean(conf.debugtext)
 
 def main():
-    if args:
-        for pagename in args:
-            page = pywikibot.Page(site, pagename)
-            page.put(libcleaner.clean(page.get()), conf.summary)
-    else:
-        debug()
+    for pagename in args:
+        page = pywikibot.Page(site, pagename)
+        page.put(libcleaner.clean(page.get()), conf.summary)
 
 if __name__ == "__main__":
     args, site, conf = preload.pre(u"clean articles")
     try:
+        #_debug()
         main()
     except:
         preload.posterror()

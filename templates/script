@@ -7,7 +7,6 @@ from lib import preload
 import pwikipedia as pywikibot
 
 def _debug():
-    pass
     NotImplemented
 
 def main():

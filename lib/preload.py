@@ -37,7 +37,7 @@ def error(e=None):
     if e:
         pywikibot.output(u"E: " + e)
     else:
-        pywikibot.output(u"E: " + unicode(traceback.format_exc()))
+        pywikibot.output(u"E: " + traceback.format_exc().decode("utf-8"))
 
 def getTime():
     """Print timestamp."""

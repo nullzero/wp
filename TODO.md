@@ -22,6 +22,7 @@
  1. it's a bit messy, but that is okay for now.
 + fixRedir; 100%
 + moveCategory; 100%
++ notifyDisam; 100%
 
 ## In progress
 ### script & its conf file

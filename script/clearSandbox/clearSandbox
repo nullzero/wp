@@ -10,6 +10,9 @@ sys.path.append(os.path.abspath("../.."))
 from lib import preload
 import pwikipedia as pywikibot
 
+def _debug():
+    NotImplemented
+
 def main():
     if conf.modeClear == "only":
         pagelist = [preload.conf.sandboxPages[0]]
@@ -22,6 +25,7 @@ def main():
 if __name__ == "__main__":
     args, site, conf = preload.pre(u"clear sandbox", lock = True)
     try:
+        #_debug()
         main()
     except:
         preload.posterror()

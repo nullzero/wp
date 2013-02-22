@@ -8,20 +8,22 @@ __author__ = "Sorawee Porncharoenwase"
 
 import re, sys
 
+def toCompile(pattern):
+    if isinstance(pattern, basestring):
+        return re.compile(pattern)
+    return pattern
+
 def findOverlap(pattern, text):
     """Find all patterns in given text overlappingly."""
-    pat = u"(?=(%s))" % pattern
-    it = re.finditer(pat, text)
-    cnt = 0
-    for i in it:
-        cnt += 1
-    return cnt
+    return sum([1 for x in toCompile(u"(?=(%s))" % 
+                                    pattern).finditer(text) if x])
 
 def repSub(pattern, replacetext, text):
     """Substitute by regex until there is no change."""
+    pattern = toCompile(pattern)
     while True:
         oldtext = text
-        text = re.sub(pattern, replacetext, text)
+        text = pattern.sub(replacetext, text)
         if text == oldtext:
             break
     return text

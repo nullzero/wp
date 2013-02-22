@@ -41,6 +41,9 @@ from lib import preload
 import pwikipedia as pywikibot, pagegenerators, catlib, userlib, category
 from lib.libservice import service
 
+def _debug():
+    NotImplemented
+
 if __name__ == "__main__":
     patName = re.compile(ur"(?<=:)(?!.*:).*(?=\]\])")
 
@@ -135,6 +138,7 @@ def main():
 if __name__ == "__main__":
     args, site, conf = preload.pre(u"move category automatically", lock = True)
     try:
+        #_debug()
         main()
     except:
         preload.posterror()

@@ -1,0 +1,63 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import sys, os
+sys.path.append(os.path.abspath("../.."))
+from lib import preload
+import pwikipedia as pywikibot
+
+def _debug():
+    NotImplemented
+
+def main():
+    tsite = pywikibot.getSite(fam="i18n")
+    bsite = pywikibot.getSite(fam="wikibooks")
+    for tpage in tsite.allpages(namespace="8", start="Bydate"):
+        if tpage.title().endswith("/th"):
+            title = tpage.title()[:-len("/th")]
+            print ">>>", title
+            page = pywikibot.Page(bsite, title)
+            ttext = tpage.get()
+            try:
+                text = page.get()
+            except pywikibot.NoPage:
+                print "NoPage"
+                continue
+            except:
+                preload.error()
+            
+            wpage = pywikibot.Page(site, title)
+            try:
+                wtext = page.get()
+            except pywikibot.NoPage:
+                print "NoPage in Wikipedia"
+            except:
+                preload.error()
+                
+            choice = False
+            if ttext.strip() != text.strip():
+                pywikibot.showDiff(text, ttext)
+                print "Wikipedia:", wtext
+                print "i18n     :", ttext
+                print "Wikibooks:", text
+                if raw_input("y/n: ") == 'y':
+                    choice = True
+            else:
+                choice = True
+            
+            if choice:
+                """
+                page = pywikibot.Page(site, title.replace("MediaWiki", "MediaWiki talk"))
+                page.put(u"{{ลบ|เหมือน translatewiki}}", u"ลบหน้า mediawiki ที่ไม่จำเป็น")
+                """
+                page.delete(u"เหมือน translatewiki", prompt = False)
+
+if __name__ == "__main__":
+    args, site, conf = preload.pre("TranslateWiki")
+    try:
+        #_debug()
+        main()
+    except:
+        preload.posterror()
+    else:
+        preload.post()

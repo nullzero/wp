@@ -10,6 +10,9 @@ sys.path.append(os.path.abspath("../.."))
 from lib import preload
 import pwikipedia as pywikibot
 
+def _debug():
+    NotImplemented
+
 def dlProgress(count, blockSize, totalSize):
     """Show download progress."""
     percent = int(count * blockSize * 100 / totalSize)
@@ -19,8 +22,8 @@ def dlProgress(count, blockSize, totalSize):
 def main():
     year = libdate.date.today().year
     month = libdate.date.today().month
-    url = "http://dumps.wikimedia.org/other/pagecounts-raw/%s/%s-%02d" % \
-                                                    (year, year, int(month))
+    url = ("http://dumps.wikimedia.org/other/pagecounts-raw/%s/%s-%02d" % 
+                                                    (year, year, int(month)))
     f = urllib.urlopen(url)
     content = f.read()
     filename = re.findall("pagecounts.*?\.gz", content)[-1]
@@ -67,6 +70,7 @@ def main():
 if __name__ == "__main__":
     args, site, conf = preload.pre(u"update pageview statistics", lock = True)
     try:
+        _debug()
         main()
     except:
         preload.posterror()

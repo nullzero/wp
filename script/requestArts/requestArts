@@ -1,18 +1,21 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+"""
+Update reqired articles at RECENTCHANGES page. The articles are obtained
+from both WP:VITAL and WP:REQUEST.
+"""
 
 import sys, os, re
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-
-try: from lib import preload
-except:
-    print "E: Can't connect to library!"
-    sys.exit()
-
+sys.path.append(os.path.abspath("../.."))
+from lib import preload
 import pwikipedia as pywikibot
 from random import shuffle
 
+def _debug():
+    NotImplemented
+
 def getlink(page, lim, reqen = False):
+    """Extract article's title from link in given page."""
     page = pywikibot.Page(site, page)
     content = page.get()
     content = content.replace(u"'''", u"")
@@ -20,8 +23,10 @@ def getlink(page, lim, reqen = False):
     regex = ur"(?m)^[\*\#]+\s*\[\[(?!:en:)(.*?)(?:\|.*?)?\]\]"
     if reqen: regex += ur".*\[\[(:en:.*?)\]\]"
     for link in re.finditer(regex, content):
-        if reqen: candidates.append((link.group(1), link.group(2)))
-        else: candidates.append((link.group(1)))
+        if reqen:
+            candidates.append((link.group(1), link.group(2)))
+        else:
+            candidates.append((link.group(1)))
     shuffle(candidates)
     count = 0
     out = []
@@ -37,18 +42,22 @@ def getlink(page, lim, reqen = False):
     return out
 
 def main():
-    pagewrite = pywikibot.Page(site, u"แม่แบบ:ปรับปรุงล่าสุด/บทความที่ต้องการ")
+    pagewrite = pywikibot.Page(site, conf.pagewrite)
     content = pagewrite.get()
     patlink = re.compile(ur"(?m)(?<=^--> )\[\[.*\]\](?= <!--$)")
     numlinks = len(patlink.findall(content))
     s = []
-    s += getlink(u"วิกิพีเดีย:บทความที่ต้องการ", numlinks // 2, reqen = True)
-    s += getlink(u"วิกิพีเดีย:รายชื่อบทความที่วิกิพีเดียทุกภาษาควรมี", numlinks - (numlinks // 2))
+    s += getlink(conf.wpreq, numlinks // 2, reqen = True)
+    s += getlink(conf.wpvital, numlinks - (numlinks // 2))
     for i in s: content = patlink.sub(i, content)
-    pagewrite.put(content, u"ปรับปรุงรายการ")
+    pagewrite.put(content, conf.summary)
 
 if __name__ == "__main__":
     args, site, conf = preload.pre(u"update request articles", lock = True)
-    try: main()
-    except: preload.posterror()
-    preload.post()
+    try:
+        #_debug()
+        main()
+    except:
+        preload.posterror()
+    else:
+        preload.post()

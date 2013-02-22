@@ -2,39 +2,59 @@
 # -*- coding: utf-8 -*-
 
 import sys, re, os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-
-try: from lib import preload
-except:
-    print "E: Can't connect to library!"
-    sys.exit()
-
-from lib import libgenerator
+sys.path.append(os.path.abspath("../.."))
+from lib import preload
+from lib import libgenerator, libstring
 import pwikipedia as pywikibot
 
+def _debug():
+    NotImplemented
+
 def main():
-    for page in libgenerator.CatGenerator(u"บทความที่มีเนื้อหาน้อยมาก"):
+    tlpat = re.compile(ur"\{\{\s*(" + u"|".join(conf.template) + ur")\s*\}\}")
+    patlist = []
+    patlist.append((ur"\s+", u" "))
+    # delete all spaces
+    patlist.append((ur"(?s)\{\|.*?\|\}", u""))
+    # delete all tables.
+    patlist.append((ur"(?s)<ref.*?</ref>", u""))
+    # delete all references
+    patlist.append((ur"(?s)(?<!\[)\[(?!\[).*?\]", u""))
+    # delete all external/internal links
+    patreplist = []
+    patreplist.append((ur"(?s)\{\{(?:(?!\{\{|\}\}).)*\}\}", u""))
+    # delete all templates.
+    
+    for i, j in enumerate(patlist):
+        patlist[i] = (re.compile(j[0]), j[1])
+    
+    for i, j in enumerate(patreplist):
+        patreplist[i] = (re.compile(j[0]), j[1])
+        
+    for page in libgenerator.CatGenerator(conf.catname):
         original_content = page.get(get_redirect = True)
         content = original_content
         content = pywikibot.removeCategoryLinks(content)
         content = pywikibot.removeLanguageLinks(content)
-        content = re.sub(u"\s+", u" ", content)
-        while True:
-            newcontent = re.sub(ur"\{\{(?:(?!\{\{|\}\}).)*\}\}", u"", content, flags = re.DOTALL)
-            if content == newcontent: break
-            content = newcontent
-        content = re.sub(ur"\{\|.*?\|\}", u"", content, flags = re.DOTALL)
-        content = re.sub(ur"<ref.*?</ref>", u"", content, flags = re.DOTALL)
-        content = re.sub(ur"(?<!\[)\[(?!\[).*?\]", u"", content, flags = re.DOTALL)
+        for pat in patlist:
+            content = pat[0].sub(pat[1], content)
+        
+        for pat in patreplist:
+            content = libstring.repSub(pat[0], pat[1], content)
+            
         pywikibot.output(u"%s : %d" % (page.title(), len(content)))
         if len(content) >= 1000:
-            pywikibot.output(u">>> ยาวแล้ว")
-            content = original_content.replace(u"{{สั้นมาก}}", u"")
+            pywikibot.output(u">>> The text is not short now.")
+            content = tlpat.sub(u"", original_content)
             if content != original_content:
-                page.put(content, u"บทความมีความยาวพอควรแล้ว นำป้ายสั้นมากออก")
+                page.put(content, conf.summary)
 
 if __name__ == "__main__":
     args, site, conf = preload.pre(u"remove veryshort tag", lock = True)
-    try: main()
-    except: preload.posterror()
-    preload.post()
+    try:
+        #_debug()
+        main()
+    except:
+        preload.posterror()
+    else:
+        preload.post()

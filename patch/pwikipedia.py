@@ -1,13 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import sys, os, time
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-try: from lib import preload
-except:
-    print "เรียกใช้ไลบรารีไม่ได้ จบการทำงาน!"
-    sys.exit()
-
+sys.path.append(os.path.abspath(".."))
+from lib import preload
 from wikipedia import *
 
 """
@@ -171,7 +166,7 @@ def quickCntRev(self):
     }
     cnt = 0
     while True:
-        dat = query.GetData(params, site)
+        dat = query.GetData(params, self.site)
         cnt += len(dat['query']['pages'].itervalues().next()['revisions'])
         if 'query-continue' in dat:
             params['rvstartid'] = dat['query-continue']['revisions']['rvcontinue']

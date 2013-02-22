@@ -29,9 +29,13 @@ def notify(user, dic, insertDisamT):
     usertalk = pywikibot.Page(site, u"User talk:" + user)
     
     for title, linkset in dic.items():
-        alllinks = [link.title() for link in \
-                                pywikibot.Page(site, title).linkedPages()]
-        dic[title] = filter(lambda link: link in alllinks, list(linkset))
+        pagenow = pywikibot.Page(site, title)
+        if pagenow.exists():
+            alllinks = [link.title() for link in pagenow.linkedPages()]
+            dic[title] = filter(lambda link: link in alllinks, list(linkset))
+        else:
+            dic[title] = []
+            
         if not dic[title]:
             del dic[title]
     
@@ -42,8 +46,8 @@ def notify(user, dic, insertDisamT):
     message = insertDisamT
     message = message.replace(conf.linkPlaceholder, scontent)
     message = message.replace(conf.userPlaceholder, user)
-    message = message.replace(conf.datePlaceholder, "%d/%d" % (
-                        libdate.date.today().day, libdate.date.today().month))
+    message = message.replace(conf.datePlaceholder, "%d/%d" % 
+                        (libdate.date.today().day, libdate.date.today().month))
     
     try:
         usertalk.put(u"%s\n\n%s --~~~~" % (usertalk.get(), message),
@@ -88,14 +92,21 @@ def check(revision):
     revid = revision[1]["revid"]
     oldrevid = revision[1]["old_revid"]
     
-    if oldrevid == 0:
-        contentold = u""
-    else:
-        contentold = page.getOldVersion(oldrevid)
+    try:
+        contentnew = page.get()
+    except IsRedirectPage:
+        return
         
-    contentnew = page.get()
-    addedlinks = set(pywikibot.extractLinkedPages(contentnew, page)) - \
-                set(pywikibot.extractLinkedPages(contentold, page))
+    contentold = u""
+    
+    if oldrevid != 0:
+        try:
+            contentold = page.getOldVersion(oldrevid)
+        except:
+            pass
+        
+    addedlinks = (set(pywikibot.extractLinkedPages(contentnew, page)) -
+                set(pywikibot.extractLinkedPages(contentold, page)))
     
     disamlinks = []
     
