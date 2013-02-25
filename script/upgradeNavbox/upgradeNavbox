@@ -4,7 +4,7 @@
 import sys, os
 sys.path.append(os.path.abspath("../.."))
 from lib import preload
-import pwikipedia as pywikibot
+import pwikipedia as pywikibot, pagegenerators
 from lib import libgenerator, re2, libinfo
 
 def _debug():
@@ -19,9 +19,11 @@ def glob():
 
 def main():
     patintclass = re2.re2(ur"(?ms)(\|\s*title\s*=.*?)$")
-    delimit = [ur"\ *[\•\.\·] *", ur"\ *\{\{(?:[\,\•·]|[\•\·]w|·wrap)\}\}\s*"]
-    patdel = re2.re2(u"(?s)(\|\ *list\d+(?:(?!below|" + re2.sep(delimit) + 
-            u").)*)" + re2.sep(delimit))
+    delimit = [ur"\s*[\•\·]\s*", ur"\ +[\•\.\·\-] +", ur"\ *\{\{(?:[\,\•·]|[\•\·]w|·wrap)\}\}\s*"]
+    patdel = re2.re2(u"(?s)(\|\ *list\d+(?:(?!below|seealso|" + #u"(?<=\]\])" + 
+            re2.sep(delimit) + 
+            u").)*)" + #u"(?<=\]\])" + 
+            re2.sep(delimit))
     patnl = re2.re2(u"(list\d+)\s*=\s*(?![\|\s\}])")
     patwrap = re2.re2(u"\{\{nowrap\s*(?:\|(.*?))?\}\}\ *")
     triml = re2.re2(u"\n+")
@@ -32,13 +34,18 @@ def main():
     if args:
         gen = [pywikibot.Page(site, preload.enunicode(args[0]))]
     else:
-        gen = libgenerator.CatGenerator(u"Navigational boxes without"
-                                        u" horizontal lists")
+        gen = pagegenerators.ReferringPageGenerator(
+                pywikibot.Page(site, u"แม่แบบ:กล่องท้ายเรื่องใหม่"),
+                onlyTemplateInclusion=True)
+        #gen = libgenerator.CatGenerator(u"Navigational boxes without"
+                                        #u" horizontal lists")
     namespass = libinfo.getdat(filename=u"passlist", key=u"name")
     namespass = filter(lambda x: x, 
             [x.strip() for x in (namespass if namespass else "").split(u" ")])
     for page in gen:
         print ">>>", page.title()
+        if not page.title().startswith(u"แม่แบบ:"):
+            continue
         
         if page.title().replace(u" ", u"_") in namespass:
             print "pass!"
@@ -60,6 +67,7 @@ def main():
         print "listclass :", addlistclass, "hlist :", addhlist, 
         
         if addlistclass and addhlist:
+            text = text.replace(u"กล่องท้ายเรื่องใหม่", u"Navbox")
             text = patintclass.sub(u"\\1\n| listclass = hlist", text)
             odiff = text
             text = patwrap.sub(u"\\1", text)
@@ -76,6 +84,7 @@ def main():
             print "------------"
             pywikibot.showDiff(odiff, text)
             print "------------"
+            print ">>>", page.title()
             response = raw_input("Should proceed?: ")
             if response == 'y':
                 page.put(text, u"ปรับปรุงแม่แบบ Navbox")

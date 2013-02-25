@@ -1,9 +1,7 @@
 #!/bin/bash
 
-cd "$(dirname $0)/../../config"
-file="$(pwd)/data.cfg"
-path="$(grep -o -P "(?<=PYWIKI: ).*" $file)"
-python "$path/replace.py" -regex -subcats:หน้าที่ยังไม่ได้จัดหมวดหมู่ '\[\[[Cc]ategory:' '[[หมวดหมู่:'
-python "$path/replace.py" -regex -cat:หน้าที่ยังไม่ได้จัดหมวดหมู่ '\[\[[Cc]ategory:' '[[หมวดหมู่:'
-python "$path/replace.py" -regex -subcats:หน้าที่ยังไม่ได้จัดหมวดหมู่ '(?s)\{\{ต้องการหมวดหมู่\}\}\s*(?=.*\[\[หมวดหมู่:)' ''
-python "$path/replace.py" -regex -cat:หน้าที่ยังไม่ได้จัดหมวดหมู่ '(?s)\{\{ต้องการหมวดหมู่\}\}\s*(?=.*\[\[หมวดหมู่:)' ''
+path="$(dirname $0)/../../pywikipedia"
+python "$path/replace.py" -regex -subcats:หน้าที่ยังไม่ได้จัดหมวดหมู่ '\[\[[Cc]ategory:' '[[หมวดหมู่:' -always 
+python "$path/replace.py" -regex -cat:หน้าที่ยังไม่ได้จัดหมวดหมู่ '\[\[[Cc]ategory:' '[[หมวดหมู่:' -always
+python "$path/replace.py" -regex -subcats:หน้าที่ยังไม่ได้จัดหมวดหมู่ '(?s)\{\{ต้องการหมวดหมู่\}\}\s*(?=.*\[\[หมวดหมู่:)' '' -always
+python "$path/replace.py" -regex -cat:หน้าที่ยังไม่ได้จัดหมวดหมู่ '(?s)\{\{ต้องการหมวดหมู่\}\}\s*(?=.*\[\[หมวดหมู่:)' '' -always

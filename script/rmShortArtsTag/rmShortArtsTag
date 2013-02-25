@@ -11,7 +11,7 @@ def _debug():
     NotImplemented
 
 def main():
-    tlpat = re2.re2(ur"\{\{\s*(" + re2.sep(conf.template) + ur")\s*\}\}")
+    tlpat = re2.re2(ur"\{\{\s*" + re2.sep(conf.template) + ur"\s*\}\}")
     patlist = re2.subst()
     patlist.append((ur"\s+", u" "))
     # delete all spaces
