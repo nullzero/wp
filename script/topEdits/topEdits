@@ -5,13 +5,13 @@ import sys, datetime, re, os
 sys.path.append(os.path.abspath("../.."))
 from lib import preload
 import pwikipedia as pywikibot, query
-from lib import libdata, reg
+from lib import libdata, re2
 
 def _debug():
     NotImplemented
 
 if __name__ == "__main__":
-    pbot = reg.re2(u"(?i)^(.*(บอต|bot)|(บอต|bot).*)$")
+    pbot = re2.re2(u"(?i)^(.*(บอต|bot)|(บอต|bot).*)$")
 
 def isbot(data):
     if "bot" in data["groups"]: return True
@@ -31,7 +31,7 @@ def dowrite(path, data):
     puttext = u"ปรับปรุงล่าสุด %s\n\n{{/begin|500}}\n" % preload.getTime()
     
     for i in data:
-        ptext += (u"|-\n| %d || [[User:%s|%s]]" % (cnt, i["name"], i["name"]) +
+        ptext += (u"|-\n| %d || [[User:%s|%s]]" % (cnt, i["name"], i["name"])
             u" %s %s || " % ("(Admin)" if ("sysop" in i["groups"]) else "",
                             "(Bot)" if ("bot" in i["groups"]) else "") + 
             u"[[Special:Contributions/%s|%s]]\n" % (i["name"], i["editcount"])

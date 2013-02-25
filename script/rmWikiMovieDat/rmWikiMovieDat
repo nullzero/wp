@@ -4,33 +4,29 @@
 import re, sys, os
 sys.path.append(os.path.abspath("../.."))
 from lib import preload
-from lib import libcleaner, libgenerator, reg
+from lib import libcleaner, libgenerator, re2
 import pwikipedia as pywikibot
 
 def _debug():
     NotImplemented
-
-if __name__ == "__main__":
-    patWikitable = re.compile(ur"(?s)\{\|.*?wikitable.*?\|\}")
-    patRowspan = re.compile(ur"rowspan(\ )*=(\ )*\"(.*?)\"")
-    patWikilink = re.compile(ur"\[\[(.*?)\]\]")
-    patHeaderStyle = re.compile(ur"\|(.*)")
+    
+def glob():
+    global patWikitable, patRowspan, patHeaderStyle
+    patWikitable = re2.re2(ur"(?s)\{\|.*?wikitable.*?\|\}")
+    patRowspan = re2.re2(ur"rowspan\ *=\ *\"(.*?)\"")
+    patHeaderStyle = re2.re2(ur"^.*?\|")
 
 def extractHeader(s):
-    s = s.strip()
-    res = patHeaderStyle.search(s) # Use to handle in case there are styles
-    if res:
-        s = res.group(1).strip()
-    res = patWikilink.search(s)
-    if res:
-        s = res.group(1).strip()
-    return s
+    s = patHeaderStyle.sub(u"", s.strip())
+    w = re2.patWikilink.find(s)
+    return w if w else s
 
 def dochange(original_content):
     content = original_content
     tablelist = patWikitable.findall(content)
 
     for table in tablelist:
+        # use to handle error in each table
         try:
             column = []
             stable = [[None for i in range(conf.maxn)]
@@ -65,8 +61,10 @@ def dochange(original_content):
                         j += 1
                     text = line[1:].strip()
                     result = patRowspan.search(text)
-                    if result is not None:
-                        rowspan = result.group(3)
+                    if result:
+                        rowspan = result.group(1)
+                        print ">>>", result.group()
+                        print ">>>", rowspan
                         for k in xrange(i + 1, i + int(rowspan)):
                             lock[k][j] = True
 
@@ -93,15 +91,14 @@ def dochange(original_content):
                 continue
             output = u'{| class="wikitable"\n|-\n! '
             for i, v in enumerate(conf.keepcolumn):
-                if mark[i] != None: # don't use if mark[i]:
-                                    # because mark[i] might equal to 0
-                    output += v[1] + u" !!"
+                if mark[i] is not None:     # don't use if mark[i]:
+                    output += v[1] + u" !!" # because mark[i] might equal to 0
             output = output[:-2] + u"\n"
             for i in xrange(n):
                 output += u"|-\n"
                 output += u"| "
                 for j in xrange(len(conf.keepcolumn)):
-                    if mark[j] and stable[i][mark[j]]:
+                    if (mark[j] is not None) and stable[i][mark[j]]:
                         output += stable[i][mark[j]] + u" ||"
                 if output != u"":
                     output = output[:-3] + u"\n"
@@ -111,10 +108,8 @@ def dochange(original_content):
         except:
             preload.error()
 
-    if content == original_content:
-        return
-        
-    return libcleaner.clean(content)
+    if content != original_content:
+        return libcleaner.clean(content)
 
 def main():
     if args:
@@ -124,6 +119,7 @@ def main():
 
     for page in gen:
         pywikibot.output(page.title())
+        # use to handle error in each page
         try:
             ocontent = page.get()
             content = dochange(ocontent)
@@ -138,6 +134,7 @@ if __name__ == "__main__":
                                     "in actor articles")
     try:
         #_debug()
+        glob()
         main()
     except:
         preload.posterror()

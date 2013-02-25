@@ -9,13 +9,16 @@ import pwikipedia as pywikibot
 def _debug():
     NotImplemented
 
+def glob():
+    pass
+
 def main():
     NotImplemented
 
 if __name__ == "__main__":
-    args, site, conf = preload.pre(NotImplemented, lock = True)
+    args, site, conf = preload.pre(NotImplemented, lock=True)
     try:
-        #_debug()
+        glob()
         main()
     except:
         preload.posterror()

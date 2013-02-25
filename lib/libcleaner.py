@@ -6,23 +6,13 @@ Clean! Clean! Clean!
 __version__ = "1.0.1"
 __author__ = "Sorawee Porncharoenwase"
 
-import sys, os, re
+import sys, os
 import preload
-from lib import liblang
+from lib import liblang, re2
 
-def sectionClean(s):
-    """Helper function to clean section's title."""
-    s = s.group()
-    for pat in patListSection:
-        s = pat[0].sub(pat[1], s)
-    return s.strip()
-
-def wikitableClean(s):
-    """Helper function to clean wikitable."""
-    s = s.group()
-    for pat in patListTable:
-        s = pat[0].sub(pat[1], s)
-    return s
+def clean(s):
+    """Clean text!"""
+    return patList.do(liblang.fixRepetedVowel(s))
 
 def consecutiveSpace(s):
     """Remove consecutive spaces."""
@@ -31,18 +21,39 @@ def consecutiveSpace(s):
     if s.startswith(u"</source>"):
         prefix = u"</source>"
         s = s[len(u"</source>"):]
-    for pat in patListSpace:
-        s = pat[0].sub(pat[1], s)
-    return prefix + s
+    return prefix + patListSpace.do(s)
 
-def clean(s):
-    """Clean text!"""
-    s = liblang.fixRepetedVowel(s)
-    for pat in patList:
-        s = pat[0].sub(pat[1], s)
-    return s
+""" Section ========================================================="""
 
-patList = []
+patListSection = re2.subst()
+patListSection.append((u"'''", u""))
+# remove all bold markup
+patListSection.append((u"''", u""))
+# remove all italic markup
+patListSection.append((u"<(?!/?(ref|sup|sub)).*?>", u""))
+# remove all html markup except refupub
+
+""" Table ==========================================================="""
+
+patListTable = re2.subst()
+patListTable.append((ur"(?m)^(\|[\-\+\}]?) *", ur"\1 "))
+# "$|-abc$" => "$|- abc$", "$|-$" => "$|- $"
+patListTable.append((ur" *\|\| *", u" || "))
+# "$z||a$" => "$z || a$"
+patListTable.append((u" *!! *", u" !! "))
+# "$z!!a$" => "$z !! a$"
+patListTable.append((ur"(?m)^\|([\}\-$]) *$", ur"|\1"))
+# "$|- $" => "$|-$"
+patListTable.append((u"(?m)^! *", u"! "))
+# "$!abc !! asd$" => "$! abc !! asd$"
+
+""" Space ==========================================================="""
+patListSpace = re2.subst()
+patListSpace.append((u"(?m)(?<=^)(?! )(.*?) +", ur"\1 "))
+# "$abc    def   ghi$" => "$abc def ghi$"
+# except: that line is in source tag or that line starts with space
+
+patList = re2.subst()
 patList.append((ur"[\t\r\f\v]", u" "))
 # change all whitespaces to space!
 patList.append((ur"_(?=[^\[\]]*\]\])", u" "))
@@ -55,10 +66,10 @@ patList.append((ur"(?m)^(=+) *(.*?) *(=+) *$", ur"\1 \2 \3"))
 # $==   oak   ==   $ => $== oak ==$
 patList.append((ur"(?m)^= (.*?) =$", ur"== \1 =="))
 # don't use first-level headings
-patList.append((ur"(?m)^==+\ .*?\ ==+$", sectionClean))
-"""call sectionClean!"""
+patList.append((ur"(?m)^==+\ .*?\ ==+$", patListSection.do))
+# call patListSection
 tablemarkup = [u"rowspan", u"align", u"colspan", u"width", u"style"]
-patList.append((u"(%s) *= *" % u"|".join(tablemarkup), ur"\1 = "))
+patList.append((u"(" + re2.sep(tablemarkup) + u") *= *", ur"\1 = "))
 # clean whitespace around equal sign
 patList.append((ur"\[\[ *(.*?) *\]\]", ur"[[\1]]"))
 # $[[   abc   def   ]]$ => $[[abc   def]]$
@@ -85,8 +96,8 @@ patList.append((ur"(?m)^(:*)([\*#]*) \{\|", ur"\1\2{|"))
 patList.append((ur"(?m)^\|(?![\}\+\-]) *", u"| "))
 # clean whitespace for template and table, except |+ |- |}
 # "$|asdasd$" => "$| asdasd$"
-patList.append((u"(?ms)^\{\|.*^\|\}.*?$", wikitableClean))
-"""call wikitable!"""
+patList.append((u"(?ms)^\{\|.*^\|\}.*?$", patListTable.do))
+# call patListTable
 patList.append((u"<references */ *>(?!.*<references */ *>)",
                 u"{{รายการอ้างอิง}}"))
 # L10n / if there are more than one reference tags, don't change!
@@ -94,46 +105,4 @@ patList.append((u"(?i)\{\{ *Reflist *", u"{{รายการอ้างอิ
 # L10n
 patList.append((ur"(?ms)((?:</source>)?)(?:(?!</?source>).)*(?=<source>|\Z)",
                 consecutiveSpace))
-"""call consecutiveSpace!"""
-
-""" Section ========================================================="""
-
-patListSection = []
-patListSection.append((u"'''", u""))
-# remove all bold markup
-patListSection.append((u"''", u""))
-# remove all italic markup
-patListSection.append((u"<(?!/?(ref|sup|sub)).*?>", u""))
-# remove all html markup except refupub
-
-""" Table ==========================================================="""
-
-patListTable = []
-patListTable.append((ur"(?m)^(\|[\-\+\}]?) *", ur"\1 "))
-# "$|-abc$" => "$|- abc$", "$|-$" => "$|- $"
-patListTable.append((ur" *\|\| *", u" || "))
-# "$z||a$" => "$z || a$"
-patListTable.append((u" *!! *", u" !! "))
-# "$z!!a$" => "$z !! a$"
-patListTable.append((ur"(?m)^\|([\}\-$]) *$", ur"|\1"))
-# "$|- $" => "$|-$"
-patListTable.append((u"(?m)^! *", u"! "))
-# "$!abc !! asd$" => "$! abc !! asd$"
-
-""" Space ==========================================================="""
-patListSpace = []
-patListSpace.append((u"(?m)(?<=^)(?! )(.*?) +", ur"\1 "))
-# "$abc    def   ghi$" => "$abc def ghi$"
-# except: that line is in source tag or that line starts with space
-    
-for i, pat in enumerate(patList):
-    patList[i] = (re.compile(pat[0]), pat[1])
-
-for i, pat in enumerate(patListTable):
-    patListTable[i] = (re.compile(pat[0]), pat[1])
-    
-for i, pat in enumerate(patListSection):
-    patListSection[i] = (re.compile(pat[0]), pat[1])
-    
-for i, pat in enumerate(patListSpace):
-    patListSpace[i] = (re.compile(pat[0]), pat[1])
+# call consecutiveSpace!

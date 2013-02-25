@@ -6,7 +6,7 @@ Library to manage everything about date and time.
 __version__ = "1.0.1"
 __author__ = "Sorawee Porncharoenwase"
 
-import datetime, sys
+import sys, datetime
 
 def wrapMonth(m):
     """Convert zero-based month number to zero-based month number."""

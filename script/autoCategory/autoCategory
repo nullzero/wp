@@ -1,0 +1,65 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import sys, os
+sys.path.append(os.path.abspath("../.."))
+from lib import preload
+import pwikipedia as pywikibot, catlib
+from lib import libgenerator, re2
+
+def _debug():
+    NotImplemented
+
+def glob():
+    global patTrimFirst
+    patTrimFirst = re2.re2(ur".*\:")
+
+def doCategory(catPage):
+    pywikibot.output("processing %s:" % catPage.title())
+    ENcatPage = catPage.getLang("en")
+    if not ENcatPage:
+        return
+    ENcatcatpage = catlib.Category(site, ENcatPage.title())
+    catcatPage = catlib.Category(site, catPage.title())
+    gen = libgenerator.CatGenerator(ENcatPage, subcat=True)
+    if (patTrimFirst.sub(u"", catcatPage.title()) == 
+            patTrimFirst.sub(u"", ENcatcatpage.title())):
+        pywikibot.output(u"English category!")
+        return
+    for i in gen:
+        pywikibot.output(u"EnPage = %s" % i.title())
+        try:
+            ids, iw = i.wikidata()
+        except pywikibot.NoPage:
+            pass
+        else:
+            if 'thwiki' in iw:
+                pywikibot.output("adding...")
+                catlib.change_category(pywikibot.Page(site, iw['thwiki']['title']), 
+                                        ENcatcatpage, None, comment=u"แปลหมวดหมู่อังกฤษ")
+                catlib.add_category(pywikibot.Page(site, iw['thwiki']['title']),
+                                    catcatPage, comment=u"autoCategory")
+            continue
+        
+        THcatPage = i.getLang("th")
+        if not THcatPage:
+            continue
+        pywikibot.output("adding...")
+        catlib.change_category(THcatPage, ENcatcatpage, None, 
+                                comment=u"แปลหมวดหมู่อังกฤษ")
+        catlib.add_category(THcatPage, catcatPage, comment=u"autoCategory")
+    
+def main():
+    if args:
+        page = pywikibot.Page(site, u"หมวดหมู่:" + preload.enunicode(args[0]))
+        doCategory(page)
+
+if __name__ == "__main__":
+    args, site, conf = preload.pre("categorize automatically")
+    try:
+        glob()
+        main()
+    except:
+        preload.posterror()
+    else:
+        preload.post()

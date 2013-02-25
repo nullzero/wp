@@ -7,20 +7,24 @@ this tag for some time.
 
 from dateutil import relativedelta
 from datetime import datetime
-import re, sys, os, difflib
+import sys, os, difflib
 sys.path.append(os.path.abspath("../.."))
 from lib import preload
+from lib import re2
 import pwikipedia as pywikibot, pagegenerators
 
 def _debug():
     NotImplemented
 
+def glob():
+    pass
+
 def main():
     gen = pagegenerators.ReferringPageGenerator(
                                     pywikibot.Page(site, conf.templateName),
-                                    onlyTemplateInclusion = True)
-    tlist = u"|".join(conf.templateList)
-    pat = re.compile(ur"(?i)\{\{\s*(" + tlist + ur")\s*\}\}\s*")
+                                    onlyTemplateInclusion=True)
+    pat = re2.re2(ur"(?i)\{\{\s*(" + re2.sep(conf.templateList) + 
+                    ur")\s*\}\}\s*")
 
     for page in gen:
         pywikibot.output(u">>> %s" % page.title())
@@ -30,7 +34,7 @@ def main():
         found = False
         for cntversion, version in enumerate(history):
             if cntversion == 0:
-                continue
+                 continue
             newversion = oldversion
             oldversion = page.getOldVersion(version[0])
             dobj = difflib.SequenceMatcher(a=oldversion, b=newversion)
@@ -44,9 +48,9 @@ def main():
                                                 "%Y-%m-%dT%H:%M:%SZ")
                 datenow = datetime.today()
                 dat = relativedelta.relativedelta(datenow, dateadded)
-                pywikibot.output(str(dat))
-                days = dat.days + dat.month*30 + dat.year*365
-                if days > conf.daylimit:
+                pywikibot.output(unicode(dat))
+                if (int(dat.days or 0) + int(dat.month or 0)*30 + 
+                                    int(dat.year or 0)*365 >= conf.daylimit):
                     doerase = True
                 break
                 
@@ -56,10 +60,9 @@ def main():
             page.put(pat.sub(u"", page.get()), conf.summary)
 
 if __name__ == "__main__":
-    args, site, conf = preload.pre(u"remove recent death template",
-                                    lock = True)
+    args, site, conf = preload.pre(u"remove recent death template", lock=True)
     try:
-        #_debug()
+        glob()
         main()
     except:
         preload.posterror()

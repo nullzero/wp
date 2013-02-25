@@ -186,3 +186,64 @@ def getLang(self, lang):
 
 Page.getLang = getLang
 
+"""
+getbytitle
+"""
+def getbytitle(self, search, sysop=False, sites="thwiki", getiw=False):
+    """API module to search for entities.
+
+    (independent of page object and could thus be extracted from this class)
+    """
+    params = {
+        'action': 'wbgetentities',
+        'titles': search,
+        'sites': sites,
+    }
+    # retrying is done by query.GetData
+    data = query.GetData(params, self.site(), sysop=sysop)
+
+    if 'error' in data:
+        raise RuntimeError("API query error: %s" % data)
+    pageInfo = data['entities'].itervalues().next()
+    if 'missing' in pageInfo:
+        raise NoPage(self.site(), unicode(self),
+"Page does not exist. In rare cases, if you are certain the page does exist, look into overriding family.RversionTab")
+    elif 'invalid' in pageInfo:
+        raise BadTitle('BadTitle: %s' % self)
+    
+    if getiw:
+        return data['entities'].keys()[0], data['entities'].itervalues().next()['sitelinks']
+    else:
+        return data['entities'].keys()[0]
+
+def __init__(self, source, title=u"!dummy", *args, **kwargs):
+    if isinstance(source, basestring):
+        source = getSite(source)
+    elif isinstance(source, Page):
+        title = source.title()
+        source = source.site
+    elif isinstance(source, int):
+        title = "Q%d" % source
+        source = getSite().data_repository()
+    self._originSite = source
+    self._originTitle = title
+    source = self._originSite.data_repository()
+    Page.__init__(self, source, title, *args, **kwargs)
+    if not (self._originSite == source):
+        self._title = None
+
+DataPage.__init__ = __init__
+DataPage.getbytitle = getbytitle
+
+"""
+wikidata
+"""
+site_wikidata = pywikibot.getSite('wikidata', 'wikidata')
+
+def wikidata(self):
+    page = self
+    if page.isRedirectPage():
+        page = page.getRedirectTarget()
+    return pywikibot.DataPage(site_wikidata).getbytitle(page.title(), 
+                                    sites=page.site().code + "wiki", getiw=True)
+Page.wikidata = wikidata

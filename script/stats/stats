@@ -4,11 +4,26 @@
 import sys, os
 sys.path.append(os.path.abspath("../.."))
 from lib import preload
-from lib import libdata, reg
+from lib import libdata, re2
 import pwikipedia as pywikibot, query, userlib
 
 def _debug():
-    NotImplemented
+    allpages = libdata.LimitedSortedList(lambda a, b: b[0] - a[0])
+    lim=10
+    for page in site.allpages(includeredirects=False):
+        pywikibot.output(u">>> %s" % page.title())
+        allpages.append((page.quickCntRev(), page.title()))
+        lim -=1
+        if lim == 0:
+            break
+    lim=5
+    for page in site.allpages(includeredirects=False, start=u"รายชื่อ"):
+        pywikibot.output(u">>> %s" % page.title())
+        allpages.append((page.quickCntRev(), page.title()))
+        lim -=1
+        if lim == 0:
+            break
+    return allpages.get()
 
 """
 Begin helper function
@@ -44,7 +59,7 @@ def getdat(regex):
         table.append([x.strip() for x in line.split(u"||")])
     
     for i in xrange(len(table)):
-        table[i][0] = reg.patWikilink.find(table[i][0])
+        table[i][0] = re2.patWikilink.find(table[i][0])
     
     return table
 
@@ -64,12 +79,13 @@ def writetable(table, regex):
         if table[i][1] == sys.maxint:
             table[i][1] = conf.newcomer
         table[i] = u" || ".join([unicode(x) for x in table[i]])
-    contentMain = regex.sub(u"".join(map(lambda x: u"\n|-\n| " + x, table)) +
+    contentMain = regex.sub(u"".join(map(lambda x: u"\n|-\n| " + x, table))
                         u"\n|}\n{{hatnote|" + conf.summary + u" %s}}\n" % 
                         preload.getTime(), contentMain)
 
 def flush():
-    pageMain.put(contentMain, conf.summary)
+    print contentMain
+    #pageMain.put(contentMain, conf.summary)
 
 def getrankold(title, table):
     for i, val in enumerate(table):
@@ -85,15 +101,16 @@ def mosteditsArt():
     """
     most edits
     """
-    regexArt = reg.genData(conf.tagind, u"บทความแก้ไขมากสุด")
-    regexArtlist = reg.genData(conf.tagind, u"บทความรายชื่อแก้ไขมากสุด")
+    regexArt = re2.genData(conf.tagind, u"บทความแก้ไขมากสุด")
+    regexArtlist = re2.genData(conf.tagind, u"บทความรายชื่อแก้ไขมากสุด")
     oldtable = getdat(regexArt)
     oldtablelist = getdat(regexArtlist)
     table = []
     tablelist = []
     ptr = 0
-    patListName = reg.genSep(conf.listname)
-    allpages = pagestat()
+    patListName = re2.re2(re2.sep(conf.listname))
+    #allpages = pagestat()
+    allpages = _debug()
     while True:
         if (len(tablelist) < 5) and patListName.search(allpages[ptr][1]):
             tablelist.append([allpages[ptr][1], getrankold(allpages[ptr][1],
@@ -115,7 +132,7 @@ def longpages():
     long pages
     """
     table = []
-    regexLong = reg.genData(conf.tagind, u"บทความยาวสุด")
+    regexLong = re2.genData(conf.tagind, u"บทความยาวสุด")
     oldlongpages = getdat(regexLong)
     for page, length in site.longpages(5):
         table.append([page.title(), getrankold(page.title(), oldlongpages),
@@ -126,8 +143,8 @@ def mosteditsUser():
     """
     most edits (user)
     """
-    limit = reg.getconf(u"ตารางชาววิกิพีเดียที่เขียนมากที่สุด", contentMain)
-    regexUser = reg.genData(conf.tagind, u"ชาววิกิพีเดียที่เขียนมากที่สุด")
+    limit = re2.getconf(u"ตารางชาววิกิพีเดียที่เขียนมากที่สุด", contentMain)
+    regexUser = re2.genData(conf.tagind, u"ชาววิกิพีเดียที่เขียนมากที่สุด")
     oldusers = getdat(regexUser)
     table = []
     for line in pywikibot.Page(site, conf.page500).get().split("\n"):
@@ -136,8 +153,8 @@ def mosteditsUser():
             continue
         if line.startswith(u"|"):
             line = [x.strip() for x in line[1:].split(u"||")]
-            name = reg.patWikilink.find(line[1])
-            cnt = reg.find(u"(?<=\|)\d+(?=\]\])", line[2])
+            name = re2.patWikilink.find(line[1])
+            cnt = re2.find(u"(?<=\|)\d+(?=\]\])", line[2])
             if int(cnt) < int(limit): break
             table.append([name, getrankold(name, oldusers), cnt])
     writetable(table, regexUser)

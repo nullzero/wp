@@ -35,17 +35,21 @@ Requirement:
 __version__ = "2.0.1"
 __author__ = "Sorawee Porncharoenwase"
 
-import re, sys, time, os
+import sys, time, os
 sys.path.append(os.path.abspath("../.."))
 from lib import preload
 import pwikipedia as pywikibot, pagegenerators, catlib, userlib, category
 from lib.libservice import service
+from lib import libservice, re2
 
 def _debug():
     NotImplemented
 
-if __name__ == "__main__":
-    patName = re.compile(ur"(?<=:)(?!.*:).*(?=\]\])")
+def glob():
+    global patName, patEndTable, patTagDel
+    patName = re2.re2(ur"(?<=:)(?!.*:).*(?=\]\])")
+    patEndTable = re2.re2(ur"(?m)^\|\}")
+    patTagDel = re2.re2(ur"(?s).*(\{\{speedydelete.*?\}\}).*")
 
 def summaryWithTime():
     return conf.summary + u" @ " + preload.getTime()
@@ -57,8 +61,8 @@ def domove(source, dest):
     interwikibot add interwiki link wrongly.
     """
     pywikibot.output(u"Move from " + source + u" to " + dest)
-    source = patName.search(source).group()
-    dest = patName.search(dest).group()
+    source = patName.find(source)
+    dest = patName.find(dest)
     robot = category.CategoryMoveRobot(source, dest, batchMode=True,
                                         editSummary=None, inPlace=False,
                                         titleRegex=None, withHistory=False)
@@ -70,9 +74,8 @@ def domove(source, dest):
     except NoPage:
         return
     else:
-        content = re.sub(ur"(?s).*(\{\{speedydelete.*?\}\}).*",
-                        u"{{bots|allow=Nullzerobot}}\n\\1", content)
-        pageCat.put(content, conf.summary)
+        pageCat.put(patTagDel.sub(u"{{bots|allow=Nullzerobot}}\n\\1", content),
+                    conf.summary)
 
 def verify(name):
     """Verify a username whether he is reliable."""
@@ -94,9 +97,8 @@ def appendTable(title, arr):
     if not arr:
         return
     page = pywikibot.Page(site, title)
-    text = page.get()
-    text = re.sub(ur"(?m)^\|\}", u"\n".join(arr) + u"\n|}", text)
-    page.put(text, summaryWithTime())
+    page.put(patEndTable.sub(u"\n".join(arr) + u"\n|}", page.get()),
+            summaryWithTime())
 
 def main():
     """Main function"""
@@ -108,12 +110,12 @@ def main():
         pageprocess = conf.pageMajor
         operation = u"major"
 
-    header, table, disable = service(serviceTitle=pageprocess,
-                                    operation=operation,
-                                    verifyFunc=verify,
-                                    datwiki=conf.datwiki,
-                                    site=site,
-                                    summary=summaryWithTime)
+    header, table, disable = libservice.service(serviceTitle=pageprocess,
+                                                operation=operation,
+                                                verifyFunc=verify,
+                                                datwiki=conf.datwiki,
+                                                site=site,
+                                                summary=summaryWithTime)
 
     report = []
     pending = []
@@ -138,7 +140,7 @@ def main():
 if __name__ == "__main__":
     args, site, conf = preload.pre(u"move category automatically", lock = True)
     try:
-        #_debug()
+        glob()
         main()
     except:
         preload.posterror()

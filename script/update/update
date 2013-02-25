@@ -1,17 +1,15 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import sys, os, re
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-
-try: from lib import preload
-except:
-    print "E: Can't connect to library!"
-    sys.exit()
-
-from lib import libdate
+import sys, os
+sys.path.append(os.path.abspath("../.."))
+from lib import preload
+from lib import libdate, re2
 import pwikipedia as pywikibot
     
+def glob():
+    pass
+
 def main():
     readTitle = conf.readTitle
     writeTitle = conf.writeTitle
@@ -23,23 +21,23 @@ def main():
     page = pywikibot.Page(site, readTitle)
     content = page.get()
     
-    pat = re.compile(u"\n\*\ \[\[(.*?)\ (.*?)\]\]\ :\ (.*)")
+    pat = re2.re2(ur"(?m)^\* \[\[(.*?) (.*?)\]\] : (.*?)$")
+    patYear = re2.re2(ur"\{\[\[.*?\]\]\}")
     result = pat.finditer(content)
     
     saveall = []
     
     for i in result:
-        nday = 0 if i.group(1) == u'?' else int(i.group(1))
+        nday = 0 if i.group(1) == u"?" else int(i.group(1))
         nmonth = i.group(2)
-        ncon = i.group(3).split(u',')
+        ncon = i.group(3).split(u",")
         nins = []
         for dat in ncon:
             dat = dat.strip()
-            yeardat = re.search(u"\{\[\[(.*)\]\]\}", dat)
+            yeardat = patYear.find(dat)
             if yeardat is not None:
-                if int(yeardat.group(1)[len(u"พ.ศ. "):]) == year:
-                    yeardat = re.sub(u"\{\[\[.*\]\]\}", u"", dat).strip()
-                    nins.append(yeardat)
+                if preload.enunicode(year) in yeardat:
+                    nins.append(patYear.sub(u"", dat).strip())
             else:
                 nins.append(dat)
         
@@ -48,33 +46,42 @@ def main():
                 nmonth = j
                 break
             
-        if len(nins) != 0: saveall.append((nday, nmonth, u", ".join(nins)))
+        if len(nins) != 0:
+            saveall.append((nday, nmonth, u", ".join(nins)))
     
     for idx, (nday, nmonth, ncon) in enumerate(saveall):
         if(nmonth, nday) >= (today.month, today.day): break
     
-    wcontent = u"""<!-- ข้อมูลในหน้านี้อัปเดตโดยอัตโนมัติด้วยบอต กรุณาแก้ที่ แม่แบบ:วันสำคัญ -->
+    wcontent = (
+u"""<!-- ข้อมูลในหน้านี้อัปเดตโดยอัตโนมัติด้วยบอต กรุณาแก้ที่ แม่แบบ:วันสำคัญ -->
 ==== วันสำคัญที่ผ่านมา ====
-"""
+""")
     for i in range(idx - 3, idx):
         state = i < 0
-        wcontent += u"* [[%s %s]] : %s\n" % (u'?' if saveall[i][0] == 0 else str(saveall[i][0]), 
-                                            libdate.monthThaiAbbr(saveall[i][1]), saveall[i][2])
+        wcontent += u"* [[%s %s]] : %s\n" % (
+                        u"?" if saveall[i][0] == 0 else str(saveall[i][0]), 
+                        libdate.monthThaiAbbr(saveall[i][1]), saveall[i][2])
     
     wcontent += u"==== วันสำคัญที่กำลังจะมาถึง ====\n"
     
     for i in range(idx, idx + 3):
         ip = i % len(saveall)
         state = i >= len(saveall)
-        wcontent += u"* [[%s %s]] : %s\n" % (u'?' if saveall[ip][0] == 0 else str(saveall[ip][0]), 
-                                            libdate.monthThaiAbbr(saveall[ip][1]), saveall[ip][2])
+        wcontent += u"* [[%s %s]] : %s\n" % (
+                        u"?" if saveall[ip][0] == 0 else str(saveall[ip][0]), 
+                        libdate.monthThaiAbbr(saveall[ip][1]), saveall[ip][2])
     
     wcontent = wcontent.strip()
     page = pywikibot.Page(site, writeTitle)
-    if page.get() != wcontent: page.put(wcontent, u"อัปเดตรายชื่อวันสำคัญโดยบอต")
+    if page.get() != wcontent:
+        page.put(wcontent, u"อัปเดตรายชื่อวันสำคัญโดยบอต")
 
 if __name__ == "__main__":
     args, site, conf = preload.pre(u"update important date", lock = True)
-    try: main()
-    except: preload.posterror()
-    preload.post()
+    try:
+        glob()
+        main()
+    except:
+        preload.posterror()
+    else:
+        preload.post()

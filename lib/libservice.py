@@ -7,22 +7,22 @@ of service so that it is ready for next customer.
 __version__ = "1.0.1"
 __author__ = "Sorawee Porncharoenwase"
 
-import sys, difflib, re
+import sys, difflib
 import preload
 import pwikipedia as pywikibot
-from lib import libwikitable, libinfo
+from lib import libwikitable, libinfo, re2
 
 def service(serviceTitle, operation, verifyFunc, datwiki, site, summary):
     """
     Get:
-        Title of service's page
+        Title of service"s page
         Key to read from config page,
         Function to verify user
         Config page, site
         Summary function.
 
     Function:
-        Clear service's page
+        Clear service"s page
 
     Return:
         Header of table
@@ -51,8 +51,8 @@ def service(serviceTitle, operation, verifyFunc, datwiki, site, summary):
         usernew = hist[i + 1][0][2]
         dummy, cold = libwikitable.wiki2table(oldv)
         dummy, cnew = libwikitable.wiki2table(newv)
-        oldvc = set([unicode(x) for x in cold])
-        newvc = set([unicode(x) for x in cnew])
+        oldvc = set([preload.enunicode(x) for x in cold])
+        newvc = set([preload.enunicode(x) for x in cnew])
         difference = [eval(x) for x in (newvc - oldvc)]
         if not verifyFunc(usernew):
             for entry in difference:
@@ -61,12 +61,12 @@ def service(serviceTitle, operation, verifyFunc, datwiki, site, summary):
                         disable[cnt] = True
                         break
 
-    newcontent = re.sub(ur"(?ms)^(\!.*?$\n).*?(^\|\})", ur"\1\2", oldcontent)
+    newcontent = re2.sub(ur"(?ms)^(\!.*?$\n).*?(^\|\})", ur"\1\2", oldcontent)
 
     if oldcontent != newcontent:
         page = pywikibot.Page(site, page.title())
         ret = page.put(newcontent, summary())
-        libinfo.putdat(key=operation, value=ret[2]['newrevid'],
+        libinfo.putdat(key=operation, value=ret[2]["newrevid"],
                         wikipage=datwiki)
 
     return header, table, disable

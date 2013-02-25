@@ -13,7 +13,6 @@ import sys, os, traceback, datetime, imp
 def File(path, name):
     return os.path.abspath(os.path.join(os.path.dirname(path), name))
 
-dirscript = os.path.dirname(__file__)
 sys.path.append(File(__file__, ".."))
 sys.path.append(File(__file__, "../patch"))
 sys.path.append(File(__file__, "../pywikipedia"))
@@ -29,6 +28,14 @@ def deunicode(st):
         st = st.encode("utf-8")
     return st
 
+def enunicode(st):
+    """Return unicode quoted string."""
+    try:
+        st = unicode(st)
+    except UnicodeDecodeError:
+        st = st.decode("utf-8")
+    return st
+
 def error(e=None):
     """
     If error message is given, print that error message. Otherwise,
@@ -37,7 +44,10 @@ def error(e=None):
     if e:
         pywikibot.output(u"E: " + e)
     else:
-        pywikibot.output(u"E: " + traceback.format_exc().decode("utf-8"))
+        exc = sys.exc_info()[0]
+        if (exc == KeyboardInterrupt) or (exc == SystemExit):
+            sys.exit()
+        pywikibot.output(u"E: " + enunicode(traceback.format_exc()))
 
 def getTime():
     """Print timestamp."""
@@ -46,6 +56,7 @@ def getTime():
 fullname = None
 lockfile = None
 basescript = os.path.basename(sys.argv[0])
+dirname = os.path.dirname(sys.argv[0])
 
 def pre(name, lock = False):
     """
@@ -65,9 +76,7 @@ def pre(name, lock = False):
             sys.exit()
         open(lockfile, 'w').close()
 
-    confpath = os.path.abspath(os.path.join(dirscript,
-                                            "../conf/",
-                                            basescript + ".py"))
+    confpath = os.path.abspath("../../conf/" + basescript + ".py")
     if os.path.exists(confpath):
         module = imp.load_source("conf", confpath)
     else:

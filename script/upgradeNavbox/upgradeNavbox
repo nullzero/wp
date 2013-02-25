@@ -1,0 +1,96 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import sys, os
+sys.path.append(os.path.abspath("../.."))
+from lib import preload
+import pwikipedia as pywikibot
+from lib import libgenerator, re2, libinfo
+
+def _debug():
+    text = ""
+    delimit = [u"\{\{,\}\}"]
+    patdel = re2.re2(u"(?s)(\|\ *list\d+(?:(?!below|\ +" + re2.sep(delimit) + 
+            u"\ +).)*)" + re2.sep(delimit))
+    print patdel.subr(u"\\1\n* ", text)
+
+def glob():
+    pass
+
+def main():
+    patintclass = re2.re2(ur"(?ms)(\|\s*title\s*=.*?)$")
+    delimit = [ur"\ *[\•\.\·] *", ur"\ *\{\{(?:[\,\•·]|[\•\·]w|·wrap)\}\}\s*"]
+    patdel = re2.re2(u"(?s)(\|\ *list\d+(?:(?!below|" + re2.sep(delimit) + 
+            u").)*)" + re2.sep(delimit))
+    patnl = re2.re2(u"(list\d+)\s*=\s*(?![\|\s\}])")
+    patwrap = re2.re2(u"\{\{nowrap\s*(?:\|(.*?))?\}\}\ *")
+    triml = re2.re2(u"\n+")
+    patbr = re2.re2(u"(?m)^(\*[^\n]*)<\s*/?\s*br\s*/?\s*>")
+    alltag = [u"small", u"span", u"div"]
+    patopen = re2.re2(u"(?m)^\*\ *(<" + re2.sep(alltag) + u">)\s*\[\[")
+    patclose = re2.re2(u"\]\]\ *(</" + re2.sep(alltag) + u">)")
+    if args:
+        gen = [pywikibot.Page(site, preload.enunicode(args[0]))]
+    else:
+        gen = libgenerator.CatGenerator(u"Navigational boxes without"
+                                        u" horizontal lists")
+    namespass = libinfo.getdat(filename=u"passlist", key=u"name")
+    namespass = filter(lambda x: x, 
+            [x.strip() for x in (namespass if namespass else "").split(u" ")])
+    for page in gen:
+        print ">>>", page.title()
+        
+        if page.title().replace(u" ", u"_") in namespass:
+            print "pass!"
+            continue
+        try:
+            text = page.get()
+        except:
+            preload.error()
+            continue
+        
+        addlistclass = True
+        addhlist = True
+        if u"listclass" in text:
+            addlistclass = False
+        
+        if u"hlist" in text:
+            addhlist = False
+        
+        print "listclass :", addlistclass, "hlist :", addhlist, 
+        
+        if addlistclass and addhlist:
+            text = patintclass.sub(u"\\1\n| listclass = hlist", text)
+            odiff = text
+            text = patwrap.sub(u"\\1", text)
+            text = patdel.subr(u"\\1\n* ", text)
+            text = patnl.sub(u"\\1 = \n* ", text)
+            text = triml.sub(u"\n", text)
+            text = patbr.sub(u"\\1", text)
+            text = patopen.sub(u"\\1\n* [[", text)
+            text = patclose.sub(u"]]\n\\1", text)
+            text = text.replace(u"&nbsp;", u"")
+            
+            #text = patfix.sub(, text)
+            print text
+            print "------------"
+            pywikibot.showDiff(odiff, text)
+            print "------------"
+            response = raw_input("Should proceed?: ")
+            if response == 'y':
+                page.put(text, u"ปรับปรุงแม่แบบ Navbox")
+            elif response == 'p':
+                namespass.append(page.title().replace(u" ", u"_"))
+                libinfo.putdat(filename=u"passlist", key=u"name", 
+                                value=" ".join(namespass))
+
+if __name__ == "__main__":
+    args, site, conf = preload.pre(u"upgrade Navbox")
+    try:
+        glob()
+        #_debug()
+        main()
+    except:
+        preload.posterror()
+    else:
+        preload.post()

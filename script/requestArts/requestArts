@@ -5,14 +5,22 @@ Update reqired articles at RECENTCHANGES page. The articles are obtained
 from both WP:VITAL and WP:REQUEST.
 """
 
-import sys, os, re
+import sys, os
 sys.path.append(os.path.abspath("../.."))
 from lib import preload
 import pwikipedia as pywikibot
 from random import shuffle
+from lib import re2
 
 def _debug():
     NotImplemented
+
+def glob():
+    global prepat, sufpat
+    prepat = ur"(?m)^[\*\#]+\s*\[\[(?!:en:)(.*?)(?:\|.*?)?\]\]"
+    sufpat = ur".*\[\[(:en:.*?)\]\]"
+    patWOen = re2.re2(prepat)
+    paten = re2.re2(prepat + sufpat)
 
 def getlink(page, lim, reqen = False):
     """Extract article's title from link in given page."""
@@ -20,42 +28,44 @@ def getlink(page, lim, reqen = False):
     content = page.get()
     content = content.replace(u"'''", u"")
     candidates = []
-    regex = ur"(?m)^[\*\#]+\s*\[\[(?!:en:)(.*?)(?:\|.*?)?\]\]"
-    if reqen: regex += ur".*\[\[(:en:.*?)\]\]"
-    for link in re.finditer(regex, content):
+    regex = paten if reqen else patWOen
+    for link in re2.finditer(regex, content):
         if reqen:
             candidates.append((link.group(1), link.group(2)))
         else:
-            candidates.append((link.group(1)))
+            candidates.append(link.group(1))
     shuffle(candidates)
     count = 0
     out = []
     for link in candidates:
-        if reqen: link, enlink = link
+        if reqen:
+            link, enlink = link
         if not pywikibot.Page(site, link).exists():
             if reqen:
                 out.append(u"[[%s]][[%s|^]]" % (link, enlink))
             else:
                 out.append(u"[[%s]]" % (link))
             count += 1
-        if count == lim: break
+        if count == lim:
+            break
     return out
 
 def main():
     pagewrite = pywikibot.Page(site, conf.pagewrite)
     content = pagewrite.get()
-    patlink = re.compile(ur"(?m)(?<=^--> )\[\[.*\]\](?= <!--$)")
+    patlink = re2.re2(ur"(?m)(?<=^--> )\[\[.*\]\](?= <!--$)")
     numlinks = len(patlink.findall(content))
     s = []
     s += getlink(conf.wpreq, numlinks // 2, reqen = True)
     s += getlink(conf.wpvital, numlinks - (numlinks // 2))
-    for i in s: content = patlink.sub(i, content)
+    for i in s:
+        content = patlink.sub(i, content)
     pagewrite.put(content, conf.summary)
 
 if __name__ == "__main__":
     args, site, conf = preload.pre(u"update request articles", lock = True)
     try:
-        #_debug()
+        glob()
         main()
     except:
         preload.posterror()

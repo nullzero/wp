@@ -3,6 +3,7 @@
 This is a user configuration file.
 """
 
+startChecking = 30
 exceptionList = [u"Jbot"]
 linkPlaceholder = u"<!-- ลิงก์ -->"
 userPlaceholder = u"<!-- ชื่อผู้ใช้ -->"

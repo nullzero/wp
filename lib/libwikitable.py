@@ -14,10 +14,10 @@ Constraint:
 __version__ = "1.0.1"
 __author__ = "Sorawee Porncharoenwase"
 
-import sys, re
+import sys
 import preload
 import pwikipedia as pywikibot
-from lib import libstring, libexception
+from lib import re2, libexception
     
 def wiki2table(content):
     """
@@ -28,12 +28,13 @@ def wiki2table(content):
     Known issues:
         What is the meaning of '||' at the beginning of line?
     """
-    obj = re.search(ur"(?ms)(^\{\|.*?^\|\})", content)
-    if not obj: raise libexception.TableError
+    try:
+        content = re2.find(ur"(?ms)^\{\|.*?^\|\}", content)
+    except AttributeError:
+        raise libexception.TableError
 
-    content = obj.group(1)
-    content = libstring.repSub(ur"(?m)(^\!.*?)\!\!", u"\\1\n!", content)
-    content = libstring.repSub(ur"(?m)(^\|.*?)\|\|", u"\\1\n|", content)
+    content = re2.subr(ur"(?m)(^\!.*?)\!\!", u"\\1\n!", content)
+    content = re2.subr(ur"(?m)(^\|.*?)\|\|", u"\\1\n|", content)
     header = []
     lines = content.split(u"\n")
     
@@ -53,7 +54,8 @@ def wiki2table(content):
             linelist.append(line[1:].strip())
     
     for line in table:
-        if len(line) != len(header): raise libexception.TableError
+        if len(line) != len(header):
+            raise libexception.TableError
     
-    header = (re.search(ur"(?m)^\{\|.*?$", content).group(), header)
+    header = (re2.find(ur"(?m)^\{\|.*?$", content), header)
     return header, table

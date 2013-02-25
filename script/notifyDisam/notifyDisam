@@ -5,14 +5,14 @@
 __version__ = "2.0.1"
 __author__ = "Sorawee Porncharoenwase"
 
-import sys, os, re, difflib
+import sys, os, difflib
 sys.path.append(os.path.abspath("../.."))
 from lib import preload
 from lib import libdate
 import pwikipedia as pywikibot
 
-if __name__ == "__main__":
-    startChecking = 30
+def glob():
+    global container
     container = {}
 
 def dict2str(d):
@@ -38,7 +38,7 @@ def notify(user, dic, insertDisamT):
             
         if not dic[title]:
             del dic[title]
-    
+            
     if not dic:
         return
     
@@ -58,15 +58,15 @@ def notify(user, dic, insertDisamT):
     pywikibot.output(u">>> done!")
 
 def _debug():
-    container[u"Nullzero"] = {}
-    container[u"Nullzero"][u"A"] = set()
-    container[u"Nullzero"][u"A"].add(u"อักษรภาพ")
-    container[u"Nullzero"][u"A"].add(u"วัว")
-    container[u"Nullzero"][u"A"].add(u"nonexist")
-    container[u"Nullzero"][u"Z"] = set()
-    container[u"Nullzero"][u"Z"].add(u"nonexist")
-    container[u"Nullzero"][u"Z"].add(u"nonexist!")
-    notify(u"Nullzero", container[u"Nullzero"],
+    container[u"Jbot"] = {}
+    container[u"Jbot"][u"A"] = set()
+    container[u"Jbot"][u"A"].add(u"อักษรภาพ")
+    container[u"Jbot"][u"A"].add(u"วัว")
+    container[u"Jbot"][u"A"].add(u"nonexist")
+    container[u"Jbot"][u"Z"] = set()
+    container[u"Jbot"][u"Z"].add(u"nonexist")
+    container[u"Jbot"][u"Z"].add(u"nonexist!")
+    notify(u"Jbot", container[u"Jbot"],
             pywikibot.Page(site, conf.messageTemplate).get())
 
 def save(user, title, links):
@@ -128,7 +128,8 @@ def check(revision):
         save(revision[1]["user"], revision[1]["title"], set(disamlinks))
     
 def main():
-    gen = site.recentchanges(number=startChecking,
+    global container
+    gen = site.recentchanges(number=conf.startChecking,
             rcshow=["!redirect", "!bot"],
             namespace="|".join([str(x) for x in xrange(0, 16, 2) if x != 2]),
             repeat=True,
@@ -147,9 +148,10 @@ def main():
 
 if __name__ == "__main__":
     args, site, conf = preload.pre(u"notify linking to disambigous page",
-                                    lock = True)
+                                    lock=True)
     try:
         #_debug()
+        glob()
         main()
     except:
         preload.posterror()

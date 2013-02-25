@@ -1,18 +1,18 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import sys, re, os
+import sys, os
 sys.path.append(os.path.abspath("../.."))
 from lib import preload
-from lib import libgenerator, libstring
+from lib import libgenerator, re2
 import pwikipedia as pywikibot
 
 def _debug():
     NotImplemented
 
 def main():
-    tlpat = re.compile(ur"\{\{\s*(" + u"|".join(conf.template) + ur")\s*\}\}")
-    patlist = []
+    tlpat = re2.re2(ur"\{\{\s*(" + re2.sep(conf.template) + ur")\s*\}\}")
+    patlist = re2.subst()
     patlist.append((ur"\s+", u" "))
     # delete all spaces
     patlist.append((ur"(?s)\{\|.*?\|\}", u""))
@@ -21,26 +21,17 @@ def main():
     # delete all references
     patlist.append((ur"(?s)(?<!\[)\[(?!\[).*?\]", u""))
     # delete all external/internal links
-    patreplist = []
+    patreplist = re2.subst()
     patreplist.append((ur"(?s)\{\{(?:(?!\{\{|\}\}).)*\}\}", u""))
     # delete all templates.
-    
-    for i, j in enumerate(patlist):
-        patlist[i] = (re.compile(j[0]), j[1])
-    
-    for i, j in enumerate(patreplist):
-        patreplist[i] = (re.compile(j[0]), j[1])
         
     for page in libgenerator.CatGenerator(conf.catname):
         original_content = page.get(get_redirect = True)
         content = original_content
         content = pywikibot.removeCategoryLinks(content)
         content = pywikibot.removeLanguageLinks(content)
-        for pat in patlist:
-            content = pat[0].sub(pat[1], content)
-        
-        for pat in patreplist:
-            content = libstring.repSub(pat[0], pat[1], content)
+        content = patlist.do(content)
+        content = patreplist.do(content, rep=True)
             
         pywikibot.output(u"%s : %d" % (page.title(), len(content)))
         if len(content) >= 1000:
