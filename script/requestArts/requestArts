@@ -13,14 +13,19 @@ from random import shuffle
 from lib import re2
 
 def _debug():
-    NotImplemented
+    pagewrite = pywikibot.Page(site, conf.pagewrite)
+    content = pagewrite.get()
+    print "a"
 
 def glob():
-    global prepat, sufpat
+    global prepat, sufpat, paten, patWOen, patlink, patoldlink, dummytext
     prepat = ur"(?m)^[\*\#]+\s*\[\[(?!:en:)(.*?)(?:\|.*?)?\]\]"
     sufpat = ur".*\[\[(:en:.*?)\]\]"
+    patoldlink = re2.re2(ur"(?m)(^--> \[\[.*?\]\] <!--\n)+")
+    patlink = re2.re2(ur"(?m)(?<=^--> )\[\[.*\]\](?= <!--$)")
     patWOen = re2.re2(prepat)
     paten = re2.re2(prepat + sufpat)
+    dummytext = u"<!-- dummy for putting -->"
 
 def getlink(page, lim, reqen = False):
     """Extract article's title from link in given page."""
@@ -29,7 +34,7 @@ def getlink(page, lim, reqen = False):
     content = content.replace(u"'''", u"")
     candidates = []
     regex = paten if reqen else patWOen
-    for link in re2.finditer(regex, content):
+    for link in regex.finditer(content):
         if reqen:
             candidates.append((link.group(1), link.group(2)))
         else:
@@ -46,6 +51,7 @@ def getlink(page, lim, reqen = False):
             else:
                 out.append(u"[[%s]]" % (link))
             count += 1
+        print count, lim
         if count == lim:
             break
     return out
@@ -53,19 +59,20 @@ def getlink(page, lim, reqen = False):
 def main():
     pagewrite = pywikibot.Page(site, conf.pagewrite)
     content = pagewrite.get()
-    patlink = re2.re2(ur"(?m)(?<=^--> )\[\[.*\]\](?= <!--$)")
     numlinks = len(patlink.findall(content))
     s = []
     s += getlink(conf.wpreq, numlinks // 2, reqen = True)
-    s += getlink(conf.wpvital, numlinks - (numlinks // 2))
-    for i in s:
-        content = patlink.sub(i, content)
+    s += getlink(conf.wpvital, numlinks - (numlinks // 2), reqen = True)
+    content = patoldlink.sub(dummytext + u"\n", content)
+    content = content.replace(dummytext, u"\n".join(map(lambda x: u"--> " + x + u" <!--", s)))
+    print content
     pagewrite.put(content, conf.summary)
 
 if __name__ == "__main__":
     args, site, conf = preload.pre(u"update request articles", lock = True)
     try:
         glob()
+        #_debug()
         main()
     except:
         preload.posterror()

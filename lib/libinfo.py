@@ -90,4 +90,4 @@ def putdat(key, value, filename=None, wikipage=None):
             f.write(preload.deunicode(changeValue(key, value, text)))
 
     if wikipage:
-        wikipage.put(changeValue(key, value, wikipage.get()))
+        wikipage.put(changeValue(key, value, wikipage.get()), u"ปรับปรุงข้อมูล")

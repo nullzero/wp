@@ -4,4 +4,3 @@ path="$(dirname $0)/../../pywikipedia"
 python "$path/redirect.py" both -api -moves -always
 python "$path/redirect.py" broken -always
 python "$path/redirect.py" double -always
-

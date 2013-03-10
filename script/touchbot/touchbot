@@ -1,0 +1,33 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import sys, os
+sys.path.append(os.path.abspath("../.."))
+from lib import preload
+import pwikipedia as pywikibot, touch, catlib, pagegenerators
+from lib import libthread
+
+def _debug():
+    NotImplemented
+
+def glob():
+    pass
+
+def main():
+    cat = catlib.Category(site, u"แม่แบบประเทศญี่ปุ่น")
+    gen = pagegenerators.CategorizedPageGenerator(cat)
+    pool = libthread.ThreadPool(10)
+    fun = lambda p: p.put(p.get())
+    for page in gen:
+        pool.add_task(fun, page)
+    pool.wait_completion()
+    
+if __name__ == "__main__":
+    args, site, conf = preload.pre("touch bot", lock=True)
+    try:
+        glob()
+        main()
+    except:
+        preload.posterror()
+    else:
+        preload.post()

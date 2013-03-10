@@ -12,7 +12,8 @@ import preload
 import pwikipedia as pywikibot
 from lib import libwikitable, libinfo, re2
 
-def service(serviceTitle, operation, verifyFunc, datwiki, site, summary):
+def service(serviceTitle, operation, verifyFunc, datwiki, site, summary, 
+            debug=False):
     """
     Get:
         Title of service"s page
@@ -36,15 +37,16 @@ def service(serviceTitle, operation, verifyFunc, datwiki, site, summary):
     header, table = libwikitable.wiki2table(oldcontent)
     disable = [False] * len(table)
     hist = page.getVersionHistory()
+    # There is no need to get all revisions, just 500 is fine (by default).
     histlist = []
 
     for version in hist:
         histlist.append((version, page.getOldVersion(version[0])))
         if version[0] == lastrev:
             break
-
     hist = histlist
     hist.reverse()
+    pywikibot.output(u"Processing %d revision(s)" % len(hist))
     for i in xrange(len(hist) - 1):
         oldv = hist[i][1]
         newv = hist[i + 1][1]
@@ -64,9 +66,13 @@ def service(serviceTitle, operation, verifyFunc, datwiki, site, summary):
     newcontent = re2.sub(ur"(?ms)^(\!.*?$\n).*?(^\|\})", ur"\1\2", oldcontent)
 
     if oldcontent != newcontent:
-        page = pywikibot.Page(site, page.title())
-        ret = page.put(newcontent, summary())
-        libinfo.putdat(key=operation, value=ret[2]["newrevid"],
+        if not debug:
+            page = pywikibot.Page(site, page.title())
+            page.put(newcontent, summary())
+        
+        print page.getVersionHistory()[0][0]
+        libinfo.putdat(key=operation, 
+                        value=page.getVersionHistory()[0][0], 
                         wikipage=datwiki)
-
+                        
     return header, table, disable

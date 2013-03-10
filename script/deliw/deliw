@@ -1,0 +1,359 @@
+#!/usr/bin/python -O
+# -*- coding: utf-8 -*-
+# use "#!/usr/bin/python -O" to make real edits
+
+import sys, os, time, difflib
+sys.path.append(os.path.abspath("../.."))
+from lib import preload
+import pwikipedia as pywikibot
+import pagegenerators, query
+from lib import libthread, libwikidata
+
+def _debug():
+    NotImplemented
+
+def glob():
+    global dataSite, enSite, reportConflict
+    if __debug__:
+        dataSite = pywikibot.getSite('en', 'testdatarepo')
+    else:
+        dataSite = pywikibot.getSite('wikidata', 'wikidata')
+    enSite = pywikibot.getSite(code='en')
+    
+    def localfun(s):
+        query.GetData({
+            'action': 'edit',
+            'title': u"User:Nullzerobot/iwconflicts",
+            'appendtext': s,
+            'summary': 'รายงาน iw conflict',
+            'token': site.getToken(),
+            'minor': 1,
+            'bot': 1}, site)
+            
+    reportConflict = libthread.LockObject(localfun)
+
+def isdifferent(oldtext, newtext):
+    for line in difflib.ndiff(oldtext.splitlines(), newtext.splitlines()):
+        if not line.startswith(u" "):
+            return True
+    return False
+
+def importiw(datapage, interwiki):
+    print "! IMPORTING"
+    if __debug__:
+        raw_input("ok?... ")
+    data = {}
+    langdic = {}
+    sitedic = {}
+    for page in interwiki:
+        vsite = page.site().databaseName()
+        vlang = page.site().lang
+        vtitle = page.title()
+        if u"#" in vtitle: continue
+        langdic[vlang] = {'language': vlang, 'value': vtitle}
+        data['labels'] = langdic
+        sitedic[vsite] = {'site': vsite, 'title': vtitle}
+        data['sitelinks'] = sitedic
+    if len(data) <= 1: return
+    return libwikidata.createitem(datapage, u"Bot: Update site links and labels from thwiki", value=data)[0] == 302
+
+def addlink(datapage, interwiki):
+    print "! ADD LINK"
+    if __debug__:
+        raw_input("ok?... ")
+    data = {}
+    langdic = {}
+    sitedic = {}
+    for page in interwiki:
+        vsite = page.site().databaseName()
+        vlang = page.site().lang
+        vtitle = page.title()
+        if u"#" in vtitle: continue
+        langdic[vlang] = {'language': vlang, 'value': vtitle}
+        data['labels'] = langdic
+        sitedic[vsite] = {'site': vsite, 'title': vtitle}
+        data['sitelinks'] = sitedic
+    if len(data) <= 1: return
+    return libwikidata.edititem(datapage, "Bot: Update site links and labels from thwiki", value=data)[0] == 302
+
+def conflict(title, datapage1, datapage2):
+    pywikibot.output(u"Page %s has conflict: %s, %s" % (title, datapage1, datapage2))
+    if __debug__:
+        raw_input("ok?... ")
+    
+    reportConflict.do(u"\n== [[%s]] ==\nหน้านี้โยงไปยัง [[:d:%s]] แต่ enwp โยงไปยัง [[:d:%s]]\n" 
+                    % (title, datapage1, datapage2))
+
+def conflict2(title, datapage, titlet2):
+    pywikibot.output(u"Page %s has conflict: %s" % (title, datapage))
+    reportConflict.do(u"\n== [[%s]] ==\nenwp มี [[:d:%s]] ซึ่งโยงกับ [[%s]] อยู่แล้ว\n" 
+                    % (title, datapage, titlet2))
+
+def conflict3(title, titlet1, titlet2):
+    pywikibot.output(u"Page %s has conflict" % title)
+    reportConflict.do(u"\n== [[%s]] ==\nenwp มี [[:en:%s]] แต่ใน Wikidata มี [[:en:%s]] อยู่แล้ว\n" 
+                    % (title, titlet1, titlet2))
+
+def doPage(page):
+    iwlist = pywikibot.getLanguageLinks(page['content'], site)
+    if len(iwlist) == 0:
+        pywikibot.output(">>> page %s doesn't have interwiki links... Skip!" 
+                                    % page['title'])
+        return
+        
+    if site in iwlist:
+        pywikibot.output(("WTF %s\n" % page['title']) * 24)
+        del iwlist[site]
+        
+    print ">>>", page['title']
+    
+    if 'encontent' in page:
+        m = enSite.redirectRegex().match(page['encontent'])
+        if m:
+            page['entitle'] = m.group(1)
+            print u"get redirect to %s" % page['entitle']
+            page['encontent']
+            wikidataSitelinks = getfromwikidata(page['entitle'], 'enwiki')
+            for dpage in wikidataSitelinks:
+                if 'sitelinks' in wikidataSitelinks[dpage]:
+                    page['enitem'] = dpage
+                    page['ensitelinks'] = wikidataSitelinks[dpage]['sitelinks']
+            print page['enitem'], page['ensitelinks']
+            if __debug__:
+                raw_input("ok?... ")
+    
+    if ('item' not in page) and ('enitem' not in page):
+        npage = pywikibot.Page(site, page['title'])
+        ndata = pywikibot.DataPage(npage)
+        if not importiw(ndata, iwlist.values() + [npage]):
+            pywikibot.output("There is an error in importing %s" % page['title'])
+            return
+        ndata = pywikibot.DataPage(npage)
+        allinterwiki = ndata.interwiki()
+        tdic = {}
+        for alink in allinterwiki:
+            tdic[alink.site().databaseName()] = {'title': alink.title()}
+        page['sitelinks'] = tdic
+    elif ('item' not in page):
+        if 'thwiki' in page['ensitelinks']:
+            thpaget = pywikibot.Page(site, page['sitelinks']['thwiki']['title'])
+            bye = False
+            try:
+                if thpaget.getRedirectTarget().title() != page['title']:
+                    bye = True
+            except pywikibot.NoPage:
+                bye = False
+            except:
+                bye = True
+            if bye:
+                conflict2(page['title'], page['enitem'], page['sitelinks']['thwiki']['title'])
+                return
+        npage = pywikibot.Page(site, page['title'])
+        ndata = pywikibot.DataPage(int(page['enitem'][1:]))
+        if not addlink(ndata, [npage]):
+            pywikibot.output("There is an error in adding th %s" % page['title'])
+            return
+    elif ('enitem' not in page):
+        if 'entitle' in page:
+            if 'enwiki' in page['sitelinks']:
+                enpaget = pywikibot.Page(enSite, page['sitelinks']['enwiki']['title'])
+                bye = False
+                try:
+                    if enpaget.getRedirectTarget().title() != page['entitle']:
+                        bye = True
+                except pywikibot.NoPage:
+                    bye = False
+                except:
+                    bye = True
+                    
+                if bye:
+                    conflict3(page['title'], page['entitle'], page['sitelinks']['enwiki']['title'])
+                    return
+                    
+            npage = pywikibot.Page(enSite, page['entitle'])
+            ndata = pywikibot.DataPage(int(page['item'][1:]))
+            if not addlink(ndata, [npage]):
+                pywikibot.output("There is an error in adding en %s" % page['title'])
+                return
+            page['sitelinks']['enwiki'] = {'title': npage.title()}
+            
+    else:
+        if page['item'] != page['enitem']:
+            conflict(page['title'], page['item'], page['enitem'])
+            return
+    
+    if ('sitelinks' not in page) and ('ensitelinks' in page):
+        page['sitelinks'] = page['ensitelinks']
+        
+    if 'sitelinks' in page:
+        for nsite in iwlist.keys():
+            if nsite.databaseName() in page['sitelinks'].keys():
+                if (iwlist[nsite].title() == 
+                        page['sitelinks'][nsite.databaseName()]['title']):
+                    del iwlist[nsite]
+                else:
+                    try:
+                        redirTar = iwlist[nsite].getRedirectTarget()
+                    except:
+                        pass
+                    else:
+                        if (redirTar == page['sitelinks'][nsite.databaseName()]
+                                            ['title']):
+                            del iwlist[nsite]
+                        
+    content = pywikibot.replaceLanguageLinks(page['content'], iwlist)
+    
+    if isdifferent(content, page['content']):
+        pywikibot.output(u"Removig iw links from page %s" % page['title'])
+        
+        if __debug__:
+            pywikibot.showDiff(page['content'], content)
+            raw_input("ok?... ")
+        else:
+            pywikibot.Page(site, page['title']).put(content, 
+                                                    u"ลบลิงก์ที่ซ้ำซ้อน wikidata")
+    """
+    if iwlist:
+        pywikibot.output(u"Tagging page %s" % (u"Talk:" + page['title']))
+        if __debug__:
+            raw_input("ok?... ")
+        else:
+            query.GetData({
+                    'action': 'edit',
+                    'title': u"Talk:" + page['title'],
+                    'prependtext': '{{movetowikidata}}\n',
+                    'summary': 'เพิ่มแท็กว่าย้ายไป Wikidata ไม่หมด',
+                    'token': site.getToken(),
+                    'minor': 1,
+                    'bot': 1}, site)
+    """
+
+def getfromwikidata(titles, site):
+    params = {
+        'action': 'wbgetentities',
+        'sites': site,
+        'titles': titles,
+        'props':  'sitelinks'
+    }
+    return query.GetData(params, dataSite)['entities']
+        
+def getdatabunch(poolpage):
+    if not poolpage: return
+    print "begin get bunch"
+    wikidataSitelinks = getfromwikidata(poolpage, 'thwiki')
+    found = {}
+    for dpage in wikidataSitelinks:
+        if 'sitelinks' in wikidataSitelinks[dpage]:
+            found[wikidataSitelinks[dpage]['sitelinks']['thwiki']['title']] = (
+                            dpage, wikidataSitelinks[dpage]['sitelinks'])
+
+    params = {
+        'action': 'query',
+        'prop': 'revisions',
+        'rvprop': 'content',
+        'titles': poolpage,
+    }
+    wikipediacontent = query.GetData(params, site)
+    wikipediacontent = wikipediacontent['query']['pages']
+    contentlist = []
+    for page in wikipediacontent:
+        if 'revisions' in wikipediacontent[page]:
+            contentlist.append((wikipediacontent[page]['title'],
+                        wikipediacontent[page]['revisions'][0]['*']))
+
+    geten = []
+    enlink = {}
+    encontent = {}
+    for i, page in enumerate(list(contentlist)):
+        langlinks = pywikibot.getLanguageLinks(page[1], site)
+        if enSite in langlinks:
+            if u"#" in langlinks[enSite].title():
+                contentlist[i] = None
+                continue
+            enlink[langlinks[enSite].title()] = page[0]
+            geten.append(langlinks[enSite].title())
+    found2 = {}
+    if geten:
+        params = {
+            'action': 'query',
+            'prop': 'revisions',
+            'rvprop': 'content',
+            'titles': geten,
+        }
+        wikipediacontent = query.GetData(params, enSite)
+        wikipediacontent = wikipediacontent['query']['pages']
+        for page in wikipediacontent:
+            if 'revisions' in wikipediacontent[page]:
+                #print wikipediacontent[page]['title']
+                #print enlink[wikipediacontent[page]['title']]
+                #print wikipediacontent[page]['revisions'][0]['*']
+                encontent[enlink[wikipediacontent[page]['title']]] = (
+                                wikipediacontent[page]['title'],
+                                wikipediacontent[page]['revisions'][0]['*'])
+        
+        
+        wikidataSitelinks = getfromwikidata(geten, 'enwiki')
+        for dpage in wikidataSitelinks:
+            if 'sitelinks' in wikidataSitelinks[dpage]:
+                found2[enlink[wikidataSitelinks[dpage]['sitelinks']['enwiki']['title']]] = (
+                                dpage, wikidataSitelinks[dpage]['sitelinks'])
+        
+    print "end get bunch"
+    for page in contentlist:
+        if not page: continue
+        dic = {
+            'title': page[0],
+            'content': page[1]
+        }
+        if page[0] in found:
+            dic['item'] = found[page[0]][0]
+            dic['sitelinks'] = found[page[0]][1]
+        
+        if page[0] in encontent:
+            dic['entitle'] = encontent[page[0]][0]
+            dic['encontent'] = encontent[page[0]][1]
+            
+        if page[0] in found2:
+            dic['enitem'] = found2[page[0]][0]
+            dic['ensitelinks'] = found2[page[0]][1]
+                    
+        yield dic
+
+def main():
+    if args:
+        start = args[0]
+    else:
+        start = '!'
+    pool = libthread.ThreadPool(conf.numthread)
+    gen = site.allpages(includeredirects=False, start=start, throttle=False)
+    poolpage = []
+    for page in gen:
+        poolpage.append(page.title())
+        if len(poolpage) >= conf.numquery:
+            for i in getdatabunch(poolpage[:conf.numquery]):
+                pool.add_task(doPage, i)
+            del poolpage[:conf.numquery]
+            pywikibot.output("waiting for %s secs" % conf.sleept)
+            time.sleep(conf.sleept)
+            #break
+            
+    # finalize
+    for i in getdatabunch(poolpage):
+        pool.add_task(doPage, i)
+    time.sleep(conf.sleept)
+    pool.wait_completion()
+    cnt = 0
+    while True:
+        print "Report status...", cnt
+        time.sleep(conf.sleept)
+        cnt += 1
+
+if __name__ == "__main__":
+    args, site, conf = preload.pre(u"delete interwiki links")
+    try:
+        glob()
+        main()
+    except:
+        preload.posterror()
+    else:
+        preload.post()

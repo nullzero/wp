@@ -19,13 +19,14 @@ def glob():
 
 def main():
     patintclass = re2.re2(ur"(?ms)(\|\s*title\s*=.*?)$")
-    delimit = [ur"\s*[\•\·]\s*", ur"\ +[\•\.\·\-] +", ur"\ *\{\{(?:[\,\•·]|[\•\·]w|·wrap)\}\}\s*"]
+    delimit = [ur"\s*[\•\·]\s*", ur"\ +[\•\.\·\-] +", ur"\ *\{\{(?:[\,\•·]|[\•\·\!]w|·wrap|จุด)\}\}\s*", ur"\s*\&\#124\;\s*"]
+    delimit = re2.sep(delimit) + ur"(?!(?:(?![\[\]]).)*\])"
     patdel = re2.re2(u"(?s)(\|\ *list\d+(?:(?!below|seealso|" + #u"(?<=\]\])" + 
-            re2.sep(delimit) + 
-            u").)*)" + #u"(?<=\]\])" + 
-            re2.sep(delimit))
+             delimit + u").)*)" + #u"(?<=\]\])" + 
+            delimit)
     patnl = re2.re2(u"(list\d+)\s*=\s*(?![\|\s\}])")
-    patwrap = re2.re2(u"\{\{nowrap\s*(?:\|(.*?))?\}\}\ *")
+    patwrap = re2.re2(u"\{\{[Nn]owrap\s*(?:\|(.*?))?\}\}\ *")
+    patrmwrap = re2.re2(u"\{\{[Nn]owrap.*?\}\}\ *")
     triml = re2.re2(u"\n+")
     patbr = re2.re2(u"(?m)^(\*[^\n]*)<\s*/?\s*br\s*/?\s*>")
     alltag = [u"small", u"span", u"div"]
@@ -34,11 +35,8 @@ def main():
     if args:
         gen = [pywikibot.Page(site, preload.enunicode(args[0]))]
     else:
-        gen = pagegenerators.ReferringPageGenerator(
-                pywikibot.Page(site, u"แม่แบบ:กล่องท้ายเรื่องใหม่"),
-                onlyTemplateInclusion=True)
-        #gen = libgenerator.CatGenerator(u"Navigational boxes without"
-                                        #u" horizontal lists")
+        gen = libgenerator.CatGenerator(u"Navigational boxes without"
+                                        u" horizontal lists")
     namespass = libinfo.getdat(filename=u"passlist", key=u"name")
     namespass = filter(lambda x: x, 
             [x.strip() for x in (namespass if namespass else "").split(u" ")])
@@ -78,6 +76,7 @@ def main():
             text = patopen.sub(u"\\1\n* [[", text)
             text = patclose.sub(u"]]\n\\1", text)
             text = text.replace(u"&nbsp;", u"")
+            text = patrmwrap.sub(u"", text)
             
             #text = patfix.sub(, text)
             print text
@@ -86,7 +85,7 @@ def main():
             print "------------"
             print ">>>", page.title()
             response = raw_input("Should proceed?: ")
-            if response == 'y':
+            if response == 'y' or response == '':
                 page.put(text, u"ปรับปรุงแม่แบบ Navbox")
             elif response == 'p':
                 namespass.append(page.title().replace(u" ", u"_"))

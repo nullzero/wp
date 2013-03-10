@@ -1,58 +1,185 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import sys, os
+import sys, os, json, time
 sys.path.append(os.path.abspath("../.."))
 from lib import preload
 import pwikipedia as pywikibot, catlib
-from lib import libgenerator, re2
+from lib import (re2, libgenerator, libthread, 
+                libservice, libcategory, libwikidata)
 
 def _debug():
     NotImplemented
 
 def glob():
-    global patTrimFirst
+    global patTrimFirst, enSite, thSite, regexMaintain, patRmDummy
     patTrimFirst = re2.re2(ur".*\:")
+    enSite = pywikibot.getSite(code="en")
+    thSite = site
+    regexMaintain = []
+    regexMaintain.append(re2.re2(ur"[Aa]rticle"))
+    regexMaintain.append(re2.re2(ur"[Ss]tub"))
+    patRmDummy = re2.re2(ur"<!-- dummy -->\s*")
 
-def doCategory(catPage):
+def subthread(i, ENcatcatpage, catcatPage):
+    try:
+        THcatPage = i.getLang("th")
+        if THcatPage:
+            pywikibot.output("thread %s >>> adding..." % i.title())
+            
+            libcategory.change_category(THcatPage, ENcatcatpage, None, 
+                            comment=u"แปลหมวดหมู่อังกฤษ")
+            THcatPage.reset()
+            catlib.add_category(THcatPage, catcatPage, comment=u"autoCategory")
+    except:
+        preload.error()
+    
+def doCategory(pool, catPage):
+    if not catPage:
+        return
     pywikibot.output("processing %s:" % catPage.title())
     ENcatPage = catPage.getLang("en")
     if not ENcatPage:
         return
-    ENcatcatpage = catlib.Category(site, ENcatPage.title())
-    catcatPage = catlib.Category(site, catPage.title())
-    gen = libgenerator.CatGenerator(ENcatPage, subcat=True)
+    ENcatcatpage = catlib.Category(thSite, ENcatPage.title())
+    catcatPage = catlib.Category(thSite, catPage.title())
     if (patTrimFirst.sub(u"", catcatPage.title()) == 
             patTrimFirst.sub(u"", ENcatcatpage.title())):
+        print catcatPage.title(), ENcatcatpage.title()
         pywikibot.output(u"English category!")
         return
-    for i in gen:
-        pywikibot.output(u"EnPage = %s" % i.title())
-        try:
-            ids, iw = i.wikidata()
-        except pywikibot.NoPage:
-            pass
-        else:
-            if 'thwiki' in iw:
-                pywikibot.output("adding...")
-                catlib.change_category(pywikibot.Page(site, iw['thwiki']['title']), 
-                                        ENcatcatpage, None, comment=u"แปลหมวดหมู่อังกฤษ")
-                catlib.add_category(pywikibot.Page(site, iw['thwiki']['title']),
-                                    catcatPage, comment=u"autoCategory")
-            continue
-        
-        THcatPage = i.getLang("th")
-        if not THcatPage:
-            continue
-        pywikibot.output("adding...")
-        catlib.change_category(THcatPage, ENcatcatpage, None, 
-                                comment=u"แปลหมวดหมู่อังกฤษ")
-        catlib.add_category(THcatPage, catcatPage, comment=u"autoCategory")
+    gen = libgenerator.CatGenerator(ENcatPage, subcat=True)
+    for j in gen:
+        pool.add_task(subthread, j, ENcatcatpage, catcatPage)
+
+def importiw(enpage, thpage):
+    data = {}
+    langdic = {}
+    sitedic = {}
+    allpages = enpage.interwiki() + [enpage, thpage]
+    for page in allpages:
+        vsite = page.site().databaseName()
+        vlang = page.site().lang
+        vtitle = page.title()
+        langdic[vlang] = {'language': vlang, 'value': vtitle}
+        data['labels'] = langdic
+        sitedic[vsite] = {'site': vsite, 'title': vtitle}
+        data['sitelinks'] = sitedic
+    datapage = pywikibot.DataPage(enpage)
+    print ">>>", datapage.title()
+    print libwikidata.createitem(datapage, 
+                                "Bot: importing page from enwp", 
+                                value=data)
+    print ">>>", datapage.title()
+
+def addItem(datapage, wikipage):
+    vlang = wikipage.site().lang
+    vtitle = wikipage.title()
+    vsite = wikipage.site().databaseName()
+    data = {}
+    data['labels'] = {}
+    data['sitelinks'] = {}
+    data['labels'][vlang] = {'language': vlang, 'value': vtitle}
+    data['sitelinks'][vsite] = {'site': vsite, 'title': vtitle}
+    print libwikidata.edititem(datapage, 
+                                u"add sitelink(s)", 
+                                value=data)
+
+def maintainCat(title):
+    for regex in regexMaintain:
+        if regex.search(title):
+            return True
+    return False
+
+def doall(pool, thTitle, enTitle=None):
+    thPage = pywikibot.Page(thSite, thTitle)
+    print thTitle, enTitle
+    if not enTitle:
+        enPage = thPage.getLang("en")
+    else:
+        enPage = pywikibot.Page(enSite, enTitle)
     
+    try:
+        missingcats = set(thPage.categories())
+        oldtext = thPage.get()
+    except:
+        missingcats = set()
+        oldtext = u""
+        
+    for caten in enPage.categories():
+        if not caten.getLang("th"):
+            missingcats.add(catlib.Category(thSite, caten.title()))
+            
+    text = pywikibot.replaceCategoryLinks(oldtext, list(missingcats))
+    pywikibot.showDiff(oldtext, text)
+    
+    if text != oldtext or text == u"":
+        if text == "":
+            text = u"<!-- dummy -->"
+        thPage.put(text, u"เพิ่มหมวดหมู่")
+    
+    thPage.reset()
+    
+    thData = pywikibot.DataPage(thPage)
+    enData = pywikibot.DataPage(enPage)
+    
+    if not thData.exists():
+        thData = None
+    if not enData.exists():
+        enData = None
+        
+    if thData == enData:
+        if not thData:
+            importiw(enPage, thPage)
+    else:
+        if thData:
+            addItem(thData, enPage)
+        elif enData:
+            addItem(enData, thPage)
+        else:
+            return False
+            
+    if thPage.isCategory():
+        doCategory(pool, thPage)
+    
+    for ENsupercat in enPage.categories():
+        print ENsupercat
+        if not maintainCat(ENsupercat.title()):
+            doCategory(pool, ENsupercat.getLang("th"))
+    
+    thPage.reset()
+    otext = thPage.get()
+    text = patRmDummy.sub(u"", otext)
+    if otext != text:
+        thPage.put(text, u"ลบข้อความ dummy")
+            
+    return True
+
+def summaryWithTime():
+    return u"บอตจัดหมวดหมู่และลิงก์ข้ามภาษา (wikidata) อัตโนมัติ" + u" @ " + preload.getTime()
+
 def main():
-    if args:
-        page = pywikibot.Page(site, u"หมวดหมู่:" + preload.enunicode(args[0]))
-        doCategory(page)
+    header, table, disable = libservice.service(serviceTitle=u"ผู้ใช้:Nullzerobot/บริการจัดหมวดหมู่/หมวดหมู่ที่รอการจัด",
+                                                operation="major",
+                                                verifyFunc=lambda x: True,
+                                                datwiki=u"ผู้ใช้:Nullzerobot/บริการจัดหมวดหมู่/",
+                                                site=site,
+                                                summary=summaryWithTime
+                                                ,debug=True
+                                                )
+    #table = [["x", u"[[:หมวดหมู่:หน่วยความจำคอมพิวเตอร์]]", "", ""]]
+    pool = libthread.ThreadPool(3)
+    for i in table:
+        try:
+            print i[1][3:-2], i[2][6:-2]
+            doall(pool, i[1][3:-2], i[2][6:-2])
+        except:
+            preload.error()
+            
+    for i in xrange(10):
+        pool.wait_completion()
+        
+    pywikibot.output(u"done!")
 
 if __name__ == "__main__":
     args, site, conf = preload.pre("categorize automatically")

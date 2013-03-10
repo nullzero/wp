@@ -83,6 +83,7 @@ remove(){
         ;;
     "pyc")
         find "${current_dir}" -type f | grep -P "\.pyc$" | xargs rm
+        find "${current_dir}" -type f | grep -P "\.pyo$" | xargs rm
         echo "$>> ลบไฟล์ pyc เรียบร้อย"
         ;;
     "git")

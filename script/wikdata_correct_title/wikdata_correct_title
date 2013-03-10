@@ -1,0 +1,89 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import sys, os
+sys.path.append(os.path.abspath("../.."))
+from lib import preload
+import pwikipedia as pywikibot, pagegenerators
+from lib import re2
+
+def getnested(dic, l):
+    for name in l:
+        dic = dic.get(name, {})
+    return dic
+
+def _debug():
+    pass
+
+def glob():
+    global pat, patdesc, patextfpart
+    pat = re2.re2(u"(?i)\{\{\s*(?:correct title|Wrongname|Bracketed|Bracket title|Title-left|Bracketed title|Badtitle|Title|DifferentTitle|Wrongtitle|Namespace conflict|Wrong title)\s*\|(.*?)\}\}")
+    patdesc = re2.re2(" \((?!.*\().*\)$")
+    patextfpart = re2.re2("^.*?(?=\||$)")
+
+def main():
+    siteen = pywikibot.getSite(code="en")
+    sitedata = pywikibot.getSite("wikidata", "wikidata")
+    page = pywikibot.Page(siteen, "Template:correct title")
+    gen = pagegenerators.ReferringPageGenerator(page, onlyTemplateInclusion=True)
+    for page in gen:
+        print "page:", page.title()
+        if page.namespace() != 0:
+            print "Skip!"
+            continue
+        text = page.get()
+        desc = None
+        obj = pat.search(text)
+        print "    text =>", obj.group()
+        if re2.search("[Bb]racket", obj.group()):
+            name = page.title().replace("(", "[").replace(")", "]")
+        else:
+            name = obj.group(1)
+            res = re2.find("title\s*=\s*(.*?)(?=\||$)", name, 1)
+            if not res:
+                res = name
+                while True:
+                    parts = patextfpart.find(res)
+                    res = patextfpart.sub("", res)[1:]
+                    if "=" not in parts:
+                        res = parts
+                        break
+                        
+            name = res
+            desc = patdesc.find(name)
+            if desc:
+                desc = desc[2:-1]
+                name = patdesc.sub("", name)
+        try:
+            ids, data = page.wikidata(getall=True)
+        except pywikibot.NoPage:
+            print "No Page"
+            continue
+            
+        datapage = pywikibot.DataPage(sitedata, ids)
+        print ">>>", name, ":::", desc
+        if getnested(data, ['labels', 'en', 'value']) != name.strip():
+            print(u"fix %s => %s" % 
+                (unicode(getnested(data, ['labels', 'en', 'value'])), name.strip()))
+                
+            if raw_input("(y/n): ") == 'y':
+                print datapage.setitem(summary="Test: Correct label", items=
+                        {'type': u'item', 'label': 'en', 'value': name})
+        
+        if desc and (not getnested(data, ['descriptions', 'en', 'value'])):
+            print "add desc", desc
+            if raw_input("(y/n): ") == 'y':
+                print datapage.setitem(summary="Test: Add description", items=
+                        {'type': u'description', 'language': 'en', 'value': desc})
+        
+
+if __name__ == "__main__":
+    args, site, conf = preload.pre("Wikidata")
+    try:
+        glob()
+        #_debug()
+        main()
+    except:
+        preload.posterror()
+    else:
+        preload.post()

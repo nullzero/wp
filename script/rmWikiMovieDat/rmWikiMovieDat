@@ -11,15 +11,21 @@ def _debug():
     NotImplemented
     
 def glob():
-    global patWikitable, patRowspan, patHeaderStyle
+    global patWikitable, patRowspan, patHeaderStyle, patpost
     patWikitable = re2.re2(ur"(?s)\{\|.*?wikitable.*?\|\}")
     patRowspan = re2.re2(ur"rowspan\ *=\ *\"(.*?)\"")
     patHeaderStyle = re2.re2(ur"^.*?\|")
+    badkeywords = [u"คู่กับ", u"นางเอก", u"นางร้าย", u"ตัวเอก", u"ตัวร้าย", u"พระเอก", u"ประพันธ์โดย", u"บทโดย", u"บทประพันธ์", u"ออกอากาศ", u"บริษัท"]
+    prebadkeywords = [ur"\(", ur"\[\[", ur"<[^>]>"]
+    patpost = re2.re2(ur"\s*" + re2.sep(prebadkeywords) + ur"*\s*" + re2.sep(badkeywords) + u".*|'''")
 
 def extractHeader(s):
     s = patHeaderStyle.sub(u"", s.strip())
     w = re2.patWikilink.find(s)
     return w if w else s
+
+def postprocess(s):
+    return patpost.sub(u"", s)
 
 def dochange(original_content):
     content = original_content
@@ -28,6 +34,7 @@ def dochange(original_content):
     for table in tablelist:
         # use to handle error in each table
         try:
+            willchange = False
             column = []
             stable = [[None for i in range(conf.maxn)]
                                 for j in range(conf.maxn)]
@@ -69,6 +76,8 @@ def dochange(original_content):
                             lock[k][j] = True
 
                     stable[i][j] = text
+                    if postprocess(text) != text:
+                        willchange = True
                     j += 1
 
             n = i + 1
@@ -77,7 +86,7 @@ def dochange(original_content):
                 vlist, vstr, vstrict = val
                 found = False
                 for idx2, val2 in enumerate(column):
-                    if (val2 == vstr) or (val2 in vlist):
+                    if any([re2.search(pat, val2) for pat in vlist]):
                         mark[idx] = idx2
                         found = True
                         cntfound += 1
@@ -87,7 +96,7 @@ def dochange(original_content):
                     skipThisTable = True
                     break
 
-            if (skipThisTable) or (cntfound == len(column)):
+            if skipThisTable or ((not willchange) and (cntfound == len(column))):
                 continue
             output = u'{| class="wikitable"\n|-\n! '
             for i, v in enumerate(conf.keepcolumn):
@@ -99,7 +108,7 @@ def dochange(original_content):
                 output += u"| "
                 for j in xrange(len(conf.keepcolumn)):
                     if (mark[j] is not None) and stable[i][mark[j]]:
-                        output += stable[i][mark[j]] + u" ||"
+                        output += postprocess(stable[i][mark[j]]) + u" ||"
                 if output != u"":
                     output = output[:-3] + u"\n"
             output += u"|}"
@@ -107,7 +116,14 @@ def dochange(original_content):
             content = pre + output + post
         except:
             preload.error()
-
+    
+    patSection = re2.re2(ur"(?ms)^=+([^\n]*)=+\ *$.*?(?=^=)")
+    allsections = patSection.finditer(content)
+    for section in allsections:
+        sectname = section.group(1)
+        if u"นิตยสาร" in sectname:
+            content = u"".join(content.split(section.group()))
+            
     if content != original_content:
         return libcleaner.clean(content)
 
@@ -125,7 +141,8 @@ def main():
             content = dochange(ocontent)
             if content and (ocontent != content):
                 pywikibot.showDiff(ocontent, content)
-                page.put(content, conf.summary)
+                if raw_input() == 'y':
+                    page.put(content, conf.summary)
         except:
             preload.error()
 

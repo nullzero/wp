@@ -1,0 +1,257 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import sys, os
+sys.path.append(os.path.abspath("../.."))
+from lib import preload
+import pwikipedia as pywikibot, catlib
+from lib import libgenerator, re2, libthread
+
+def _debug():
+    NotImplemented
+
+def glob():
+    global patTrimFirst, enSite, dataSite, thSite
+    patTrimFirst = re2.re2(ur".*\:")
+    enSite = pywikibot.getSite(code="en")
+    dataSite = pywikibot.getSite("wikidata", "wikidata")
+    thSite = site
+
+def change_category(article, oldCat, newCat, comment=None, sortKey=None,
+                    inPlace=False):
+    """
+    Given an article which is in category oldCat, moves it to
+    category newCat. Moves subcategories of oldCat as well.
+    oldCat and newCat should be Category objects.
+    If newCat is None, the category will be removed.
+    """
+    cats = article.categories(get_redirect=True)
+    site = article.site()
+    changesMade = False
+
+    if not article.canBeEdited():
+        pywikibot.output("Can't edit %s, skipping it..."
+                         % article.title(asLink=True))
+        return False
+    if inPlace or article.namespace() == 10:
+        oldtext = article.get(get_redirect=True)
+        newtext = pywikibot.replaceCategoryInPlace(oldtext, oldCat, newCat)
+        if newtext == oldtext:
+            pywikibot.output(
+                u'No changes in made in page %s.' % article.title(asLink=True))
+            return False
+        try:
+            article.put(newtext, comment)
+            return True
+        except pywikibot.EditConflict:
+            pywikibot.output(u'Skipping %s because of edit conflict'
+                             % article.title(asLink=True))
+        except pywikibot.LockedPage:
+            pywikibot.output(u'Skipping locked page %s'
+                             % article.title(asLink=True))
+        except pywikibot.SpamfilterError, error:
+            pywikibot.output(u'Changing page %s blocked by spam filter (URL=%s)'
+                             % (article.title(asLink=True), error.url))
+        except pywikibot.NoUsername:
+            pywikibot.output(u'Page %s not saved; sysop privileges required.'
+                             % article.title(asLink=True))
+        except pywikibot.PageNotSaved, error:
+            pywikibot.output(u'Saving page %s failed: %s'
+                             % (article.title(asLink=True), error.message))
+        return False
+
+    # This loop will replace all occurrences of the category to be changed,
+    # and remove duplicates.
+    newCatList = []
+    newCatSet = set()
+    for i in range(len(cats)):
+        cat = cats[i]
+        if cat == oldCat:
+            changesMade = True
+            if not sortKey:
+                sortKey = cat.sortKey
+            if newCat:
+                if newCat.title() not in newCatSet:
+                    newCategory = catlib.Category(site, newCat.title(),
+                                           sortKey=sortKey)
+                    newCatSet.add(newCat.title())
+                    newCatList.append(newCategory)
+        elif cat.title() not in newCatSet:
+            newCatSet.add(cat.title())
+            newCatList.append(cat)
+
+    if not changesMade:
+        pywikibot.output(u'ERROR: %s is not in category %s!'
+                         % (article.title(asLink=True), oldCat.title()))
+    else:
+        text = article.get(get_redirect=True)
+        try:
+            text = pywikibot.replaceCategoryLinks(text, newCatList)
+        except ValueError:
+            # Make sure that the only way replaceCategoryLinks() can return
+            # a ValueError is in the case of interwiki links to self.
+            pywikibot.output(
+                    u'Skipping %s because of interwiki link to self' % article)
+        try:
+            article.put(text, comment)
+            return True
+        except pywikibot.EditConflict:
+            pywikibot.output(
+                    u'Skipping %s because of edit conflict' % article.title())
+        except pywikibot.SpamfilterError, e:
+            pywikibot.output(
+                    u'Skipping %s because of blacklist entry %s'
+                    % (article.title(), e.url))
+        except pywikibot.LockedPage:
+            pywikibot.output(
+                    u'Skipping %s because page is locked' % article.title())
+        except pywikibot.PageNotSaved, error:
+            pywikibot.output(u"Saving page %s failed: %s"
+                             % (article.title(asLink=True), error.message))
+    return False
+
+def subthread(i, ENcatcatpage, catcatPage):
+    try:
+        pywikibot.output("thread %s >>> processing... en = %s, th = %s" % 
+                        (i.title(), ENcatcatpage.title(), catcatPage.title()))
+        THcatPage = i.getLang("th")
+        if THcatPage:
+            pywikibot.output("thread %s >>> adding..." % i.title())
+            
+            if change_category(THcatPage, ENcatcatpage, None,
+                                    comment=u"แปลหมวดหมู่อังกฤษ"):
+                THcatPage = pywikibot.Page(thSite, THcatPage.title())
+                
+            catlib.add_category(THcatPage, catcatPage, comment=u"autoCategory")
+    except:
+        preload.error()
+    
+def doCategory(pool, catPage):
+    if not catPage:
+        return
+    pywikibot.output("processing %s:" % catPage.title())
+    ENcatPage = catPage.getLang("en")
+    if not ENcatPage:
+        return
+    ENcatcatpage = catlib.Category(site, ENcatPage.title())
+    catcatPage = catlib.Category(site, catPage.title())
+    gen = libgenerator.CatGenerator(ENcatPage, subcat=True)
+    if (patTrimFirst.sub(u"", catcatPage.title()) == 
+            patTrimFirst.sub(u"", ENcatcatpage.title())):
+        pywikibot.output(u"English category!")
+        return
+    for j in gen:
+        pool.add_task(subthread, j, ENcatcatpage, catcatPage)
+
+def toUnicode(s):
+    return s if s else ""
+    
+knownsites = ["aawiki", "abwiki", "acewiki", "afwiki", "akwiki", "alswiki", "amwiki", "anwiki", "angwiki", "arwiki", "arcwiki", "arzwiki",
+ "aswiki", "astwiki", "avwiki", "aywiki", "azwiki", "bawiki", "barwiki", "bat_smgwiki", "bclwiki", "bewiki",
+ "be_x_oldwiki", "bgwiki", "bhwiki", "biwiki", "bjnwiki", "bmwiki", "bnwiki", "bowiki", "bpywiki", "brwiki", "bswiki",
+ "bugwiki", "bxrwiki", "cawiki", "cbk_zamwiki", "cdowiki", "cewiki", "cebwiki", "chwiki", "chowiki", "chrwiki", "chywiki",
+ "ckbwiki", "cowiki", "crwiki", "crhwiki", "cswiki", "csbwiki", "cuwiki", "cvwiki", "cywiki", "dawiki", "dewiki", "diqwiki",
+ "dsbwiki", "dvwiki", "dzwiki", "eewiki", "elwiki", "emlwiki", "enwiki", "eowiki", "eswiki", "etwiki", "euwiki", "extwiki",
+ "fawiki", "ffwiki", "fiwiki", "fiu_vrowiki", "fjwiki", "fowiki", "frwiki", "frpwiki", "frrwiki", "furwiki", "fywiki",
+ "gawiki", "gagwiki", "ganwiki", "gdwiki", "glwiki", "glkwiki", "gnwiki", "gotwiki", "guwiki", "gvwiki", "hawiki", "hakwiki",
+ "hawwiki", "hewiki", "hiwiki", "hifwiki", "howiki", "hrwiki", "hsbwiki", "htwiki", "huwiki", "hywiki", "hzwiki", "iawiki",
+ "idwiki", "iewiki", "igwiki", "iiwiki", "ikwiki", "ilowiki", "iowiki", "iswiki", "itwiki", "iuwiki", "jawiki", "jbowiki",
+ "jvwiki", "kawiki", "kaawiki", "kabwiki", "kbdwiki", "kgwiki", "kiwiki", "kjwiki", "kkwiki", "klwiki", "kmwiki", "knwiki",
+ "kowiki", "koiwiki", "krwiki", "krcwiki", "kswiki", "kshwiki", "kuwiki", "kvwiki", "kwwiki", "kywiki", "lawiki", "ladwiki",
+ "lbwiki", "lbewiki", "lezwiki", "lgwiki", "liwiki", "lijwiki", "lmowiki", "lnwiki", "lowiki", "ltwiki", "ltgwiki", "lvwiki",
+ "map_bmswiki", "mdfwiki", "mgwiki", "mhwiki", "mhrwiki", "miwiki", "mkwiki", "mlwiki", "mnwiki", "mowiki", "mrwiki",
+ "mrjwiki", "mswiki", "mtwiki", "muswiki", "mwlwiki", "mywiki", "myvwiki", "mznwiki", "nawiki", "nahwiki", "napwiki",
+ "ndswiki", "nds_nlwiki", "newiki", "newwiki", "ngwiki", "nlwiki", "nnwiki", "nowiki", "novwiki", "nrmwiki", "nsowiki",
+ "nvwiki", "nywiki", "ocwiki", "omwiki", "orwiki", "oswiki", "pawiki", "pagwiki", "pamwiki", "papwiki", "pcdwiki", "pdcwiki",
+ "pflwiki", "piwiki", "pihwiki", "plwiki", "pmswiki", "pnbwiki", "pntwiki", "pswiki", "ptwiki", "quwiki", "rmwiki",
+ "rmywiki", "rnwiki", "rowiki", "roa_rupwiki", "roa_tarawiki", "ruwiki", "ruewiki", "rwwiki", "sawiki", "sahwiki",
+ "scwiki", "scnwiki", "scowiki", "sdwiki", "sewiki", "sgwiki", "shwiki", "siwiki", "simplewiki", "skwiki", "slwiki",
+ "smwiki", "snwiki", "sowiki", "sqwiki", "srwiki", "srnwiki", "sswiki", "stwiki", "stqwiki", "suwiki", "svwiki", "swwiki",
+ "szlwiki", "tawiki", "tewiki", "tetwiki", "tgwiki", "thwiki", "tiwiki", "tkwiki", "tlwiki", "tnwiki", "towiki", "tpiwiki",
+ "trwiki", "tswiki", "ttwiki", "tumwiki", "twwiki", "tywiki", "udmwiki", "ugwiki", "ukwiki", "urwiki", "uzwiki", "vewiki",
+ "vecwiki", "vepwiki", "viwiki", "vlswiki", "vowiki", "wawiki", "warwiki", "wowiki", "wuuwiki", "xalwiki", "xhwiki",
+ "xmfwiki", "yiwiki", "yowiki", "zawiki", "zeawiki", "zhwiki", "zh_classicalwiki", "zh_min_nanwiki", "zh_yuewiki",
+ "zuwiki", "minwiki"]
+
+def importiw(enpage, thpage):
+    data = {}
+    langdic = {}
+    sitedic = {}
+    allpages = enpage.interwiki() + [enpage, thpage]
+    for page in allpages:
+        print page
+        vsite = page.site().dbName().split('_')[0].replace(u"-", u"_")
+        if vsite not in knownsites:
+            continue
+        vlang = page.site().lang
+        vtitle = page.title()
+        langdic[vlang] = {'language': vlang, 'value': vtitle}
+        data['labels'] = langdic
+        sitedic[vsite] = {'site': vsite, 'title': vtitle}
+        data['sitelinks'] = sitedic
+        
+    datapage = pywikibot.DataPage(enpage)
+    print datapage.createitem("Test: Bot: importing page from enwp", value=data)
+
+def maintainCat(title):
+    return False
+
+def doall(pool, thTitle, enTitle=None):
+    thPage = pywikibot.Page(thSite, thTitle)
+    if not enTitle:
+        enPage = thPage.getLang("en")
+    else:
+        enPage = pywikibot.Page(enSite, enTitle)
+        
+    try:
+        thData = thPage.wikidata()
+    except pywikibot.NoPage:
+        thData = None
+    try:
+        enData = enPage.wikidata()
+    except pywikibot.NoPage:
+        enData = None
+    print thData, enData
+    if thData == enData:
+        if thData:
+            pass
+        else:
+            importiw(enPage, thPage)
+    else:
+        if thData or enData:
+            addItem(pywikibot.DataPage(dataSite, 
+                                        toUnicode(thData) + toUnicode(enData)),
+                    thPage if thPage else enPage)
+        else:
+            return False
+            
+    if thPage.isCategory():
+        doCategory(pool, thPage)
+    
+    ENcatPage = thPage.getLang("en")
+    if not ENcatPage:
+        return
+    for ENsupercat in ENcatPage.categories():
+        if not maintainCat(ENsupercat.title())
+            doCategory(pool, ENsupercat.getLang("th"))
+    return True
+
+def main():
+    pool = libthread.ThreadPool(3)
+    for i in args:
+        try:
+            doall(pool, preload.enunicode(i))
+        except:
+            preload.error()
+                
+    pool.wait_completion()
+
+if __name__ == "__main__":
+    args, site, conf = preload.pre("categorize automatically")
+    try:
+        glob()
+        main()
+    except:
+        preload.posterror()
+    else:
+        preload.post()

@@ -1,3 +1,4 @@
 pywikipedia
 stuff
 *.pyc
+*.pyo

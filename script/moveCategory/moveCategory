@@ -38,9 +38,194 @@ __author__ = "Sorawee Porncharoenwase"
 import sys, time, os
 sys.path.append(os.path.abspath("../.."))
 from lib import preload
-import pwikipedia as pywikibot, pagegenerators, catlib, userlib, category
+import pwikipedia as pywikibot, pagegenerators, userlib, catlib
 from lib.libservice import service
-from lib import libservice, re2
+from lib import libservice, re2, libthread
+from pywikibot import i18n
+
+"""
+Following codes are copied from Pywikipedia to support multithreading.
+"""
+
+def copyAndKeep(oldcat, catname):
+    """
+    Returns true if copying was successful, false if target page already
+    existed.
+    """
+    targetCat = pywikibot.Page(oldcat.site(), catname, defaultNamespace=14)
+    if targetCat.exists():
+        pywikibot.output('Target page %s already exists!' % targetCat.title())
+        return False
+        
+    pywikibot.output('Moving text from %s to %s.' % 
+                    (oldcat.title(), targetCat.title()))
+                    
+    targetCat.put(oldcat.get(), u'โรบอต: ย้ายจาก %s. ผู้ร่วมเขียน: %s' % 
+                (oldcat.title(), ', '.join(oldcat.contributingUsers())))
+    return True
+
+def change_category(article, oldCat, newCat, comment=None, sortKey=None):
+    """
+    Given an article which is in category oldCat, moves it to
+    category newCat. Moves subcategories of oldCat as well.
+    oldCat and newCat should be Category objects.
+    If newCat is None, the category will be removed.
+    """
+    cats = article.categories(get_redirect=True)
+    site = article.site()
+    changesMade = False
+
+    if not article.canBeEdited():
+        pywikibot.output("Can't edit %s, skipping it..."
+                         % article.title(asLink=True))
+        return False
+    if article.namespace() == 10:
+        oldtext = article.get(get_redirect=True)
+        newtext = pywikibot.replaceCategoryInPlace(oldtext, oldCat, newCat)
+        if newtext == oldtext:
+            pywikibot.output(
+                u'No changes in made in page %s.' % article.title(asLink=True))
+            return False
+        try:
+            article.put(newtext, comment)
+            return True
+        except pywikibot.EditConflict:
+            pywikibot.output(u'Skipping %s because of edit conflict'
+                             % article.title(asLink=True))
+        except pywikibot.LockedPage:
+            pywikibot.output(u'Skipping locked page %s'
+                             % article.title(asLink=True))
+        except pywikibot.SpamfilterError, error:
+            pywikibot.output(u'Changing page %s blocked by spam filter (URL=%s)'
+                             % (article.title(asLink=True), error.url))
+        except pywikibot.NoUsername:
+            pywikibot.output(u'Page %s not saved; sysop privileges required.'
+                             % article.title(asLink=True))
+        except pywikibot.PageNotSaved, error:
+            pywikibot.output(u'Saving page %s failed: %s'
+                             % (article.title(asLink=True), error.message))
+        return False
+
+    # This loop will replace all occurrences of the category to be changed,
+    # and remove duplicates.
+    newCatList = []
+    newCatSet = set()
+    for i in range(len(cats)):
+        cat = cats[i]
+        if cat == oldCat:
+            changesMade = True
+            sortKey = cat.sortKey
+            if newCat:
+                if newCat.title() not in newCatSet:
+                    newCategory = catlib.Category(site, newCat.title(),
+                                           sortKey=sortKey)
+                    newCatSet.add(newCat.title())
+                    newCatList.append(newCategory)
+        elif cat.title() not in newCatSet:
+            newCatSet.add(cat.title())
+            newCatList.append(cat)
+
+    if not changesMade:
+        pywikibot.output(u'ERROR: %s is not in category %s!'
+                         % (article.title(asLink=True), oldCat.title()))
+    else:
+        text = article.get(get_redirect=True)
+        try:
+            text = pywikibot.replaceCategoryLinks(text, newCatList)
+        except ValueError:
+            # Make sure that the only way replaceCategoryLinks() can return
+            # a ValueError is in the case of interwiki links to self.
+            pywikibot.output(
+                    u'Skipping %s because of interwiki link to self' % article)
+        try:
+            article.put(text, comment)
+            return True
+        except pywikibot.EditConflict:
+            pywikibot.output(
+                    u'Skipping %s because of edit conflict' % article.title())
+        except pywikibot.SpamfilterError, e:
+            pywikibot.output(
+                    u'Skipping %s because of blacklist entry %s'
+                    % (article.title(), e.url))
+        except pywikibot.LockedPage:
+            pywikibot.output(
+                    u'Skipping %s because page is locked' % article.title())
+        except pywikibot.PageNotSaved, error:
+            pywikibot.output(u"Saving page %s failed: %s"
+                             % (article.title(asLink=True), error.message))
+    return False
+
+class CategoryMoveRobot:
+    """Robot to move pages from one category to another."""
+
+    def __init__(self, oldCatTitle, newCatTitle):
+        self.site = pywikibot.getSite()
+        self.oldCat = catlib.Category(self.site, oldCatTitle)
+        self.newCatTitle = newCatTitle
+
+    def run(self):
+        newCat = catlib.Category(self.site, self.newCatTitle)
+        reason = i18n.twtranslate(self.site, 'category-was-moved') \
+                     % {'newcat': self.newCatTitle, 'title': self.newCatTitle}
+        
+        self.editSummary = i18n.twtranslate(site, 'category-changing') \
+                               % {'oldcat':self.oldCat.title(),
+                                  'newcat':newCat.title()}
+
+        copied = False
+        oldMovedTalk = None
+        if self.oldCat.exists():
+            copied = copyAndKeep(self.oldCat, self.newCatTitle)
+            if copied:
+                oldTalk = self.oldCat.toggleTalkPage()
+                if oldTalk.exists():
+                    newTalkTitle = newCat.toggleTalkPage().title()
+                    try:
+                        talkMoved = oldTalk.move(newTalkTitle, reason)
+                    except (pywikibot.NoPage, pywikibot.PageNotSaved), e:
+                        #in order :
+                        #Source talk does not exist, or
+                        #Target talk already exists
+                        pywikibot.output(e.message)
+                    else:
+                        if talkMoved:
+                            oldMovedTalk = oldTalk
+        
+        pool = libthread.ThreadPool(10)
+        # Move articles
+        gen = pagegenerators.CategorizedPageGenerator(self.oldCat,
+                                                      recurse=False)
+        
+        def localchange(article, oldCat, newCat, comment):
+            res = change_category(article, oldCat, 
+                                    newCat, comment)
+            if res:
+                return
+            catlib.change_category(pywikibot.Page(site, article.title() + 
+                    '/doc'), oldCat, newCat, comment=comment)
+                    
+        for article in gen:
+            pool.add_task(localchange, article, self.oldCat,
+                        newCat, self.editSummary)
+        time.sleep(20)
+        # Move subcategories
+        gen = pagegenerators.SubCategoriesPageGenerator(self.oldCat,
+                                                        recurse=False)
+        for subcategory in gen:
+            pool.add_task(localchange, subcategory, self.oldCat,
+                        newCat, self.editSummary)
+        time.sleep(20)
+        pool.wait_completion()
+        time.sleep(20)
+        # Delete the old category and its moved talk page
+        if copied:
+            if self.oldCat.isEmptyCategory():
+                self.oldCat.delete(reason, prompt=False, mark=True)
+                if oldMovedTalk is not None:
+                    oldMovedTalk.delete(reason, prompt=False, mark=True)
+            else:
+                pywikibot.output('Couldn\'t delete %s - not empty.'
+                                 % self.oldCat.title())
 
 def _debug():
     NotImplemented
@@ -49,7 +234,7 @@ def glob():
     global patName, patEndTable, patTagDel
     patName = re2.re2(ur"(?<=:)(?!.*:).*(?=\]\])")
     patEndTable = re2.re2(ur"(?m)^\|\}")
-    patTagDel = re2.re2(ur"(?s).*(\{\{speedydelete.*?\}\}).*")
+    patTagDel = re2.re2(ur"(?s)\{\{speedydelete.*?\}\}")
 
 def summaryWithTime():
     return conf.summary + u" @ " + preload.getTime()
@@ -63,10 +248,7 @@ def domove(source, dest):
     pywikibot.output(u"Move from " + source + u" to " + dest)
     source = patName.find(source)
     dest = patName.find(dest)
-    robot = category.CategoryMoveRobot(source, dest, batchMode=True,
-                                        editSummary=None, inPlace=False,
-                                        titleRegex=None, withHistory=False)
-    # editSummary=None to force library put default summary automatically
+    robot = CategoryMoveRobot(source, dest)
     robot.run()
     pageCat = pywikibot.Page(site, u"Category:" + source)
     try:
@@ -74,8 +256,9 @@ def domove(source, dest):
     except NoPage:
         return
     else:
-        pageCat.put(patTagDel.sub(u"{{bots|allow=Nullzerobot}}\n\\1", content),
-                    conf.summary)
+        res = patTagDel.find(content)
+        if res:
+            pageCat.put(u"{{bots|allow=Nullzerobot}}\n" + res, conf.summary)
 
 def verify(name):
     """Verify a username whether he is reliable."""

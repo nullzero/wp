@@ -1,15 +1,22 @@
 # -*- coding: utf-8 -*-
 
-import sys, os, time
+import sys, os, time, re
 sys.path.append(os.path.abspath(".."))
 from lib import preload
 from wikipedia import *
 
 """
-linkedPages ============================================================
+linkedPages
+===========
+Override function linkedPages to support subpage linking.
 """
 
 def extractLinkedPages(content, page, withImageLinks=False):
+    """
+    This function extract linked pages from text of a page. 
+    Since this function get text of page as a parameter, 
+    it can be used to obtain linked pages of old version of page.
+    """
     result = []
     try:
         thistxt = removeLanguageLinks(content,
@@ -32,19 +39,28 @@ def extractLinkedPages(content, page, withImageLinks=False):
     for match in Rlink.finditer(thistxt):
         title = match.group('title')
         title = title.replace("_", " ").strip(" ")
-        title = re.sub('#.*', '', title) # don't process section
-        if not title: continue # skip internal section link case
-        if title.startswith('//'): continue # [[//abc]] will produce an external link to http://abc
-        if title.endswith('/..'): continue # such as [[a/b/..]], [[../..]]. they will not produce a link    
-        if title == '..': continue # [[..]] will not produce a link
-        if title.startswith('/') and '/../' in title: continue  # [[/foo/../bar]] will not produce a link
+        title = re.sub('#.*', '', title) 
+        # don't process section
+        if not title: continue
+        # skip internal section link case
+        if title.startswith('//'): continue
+        # [[//abc]] will produce an external link to http://abc
+        if title.endswith('/..'): continue
+        # such as [[a/b/..]], [[../..]]. they will not produce a link    
+        if title == '..': continue
+        # [[..]] will not produce a link
+        if title.startswith('/') and '/../' in title: continue
+        # [[/foo/../bar]] will not produce a link
         if page.namespace() in page.site.family.namespacesWithSubpage:
             # convert relative link to absolute link if that namespace has subpage
             if title.startswith('/'):
-                title = page.title() + re.sub('/*$', '', title) # [[/abc/////]] = [[/abc]]
+                title = page.title() + re.sub('/*$', '', title)
+                # [[/abc/////]] = [[/abc]]
             elif title.startswith('..'):
                 linkparts = deque(title.split('/'))
-                if len(linkparts) >= 2 and linkparts[-1] == '' and linkparts[-2] == '..': linkparts.pop()
+                if (len(linkparts) >= 2 and linkparts[-1] == '' 
+                                        and linkparts[-2] == '..'):
+                    linkparts.pop()
                 baseparts = page.title().split('/')
                 try:
                     while linkparts:
@@ -54,12 +70,16 @@ def extractLinkedPages(content, page, withImageLinks=False):
                         else:
                             break
                 except IndexError:
-                    continue # invalid link
-                if '..' in linkparts: continue # [[../a/../b]] will not produce a link.
+                    continue
+                    # invalid link
+                if '..' in linkparts: continue
+                # [[../a/../b]] will not produce a link.
                 title = '/'.join(baseparts + list(linkparts))
-                if not title: continue # empty string -> invalid link
+                if not title: continue
+                # empty string -> invalid link
             else:
-                if '/../' in title: continue # [[abc/../def]] will not produce a link.
+                if '/../' in title: continue
+                # [[abc/../def]] will not produce a link.
         if not page.site().isInterwikiLink(title):
             try:
                 page = Page(page.site(), title)
@@ -80,32 +100,24 @@ def extractLinkedPages(content, page, withImageLinks=False):
     return result
 
 def linkedPages(self, withImageLinks=False):
+    """
+    Override old linkedPages
+    """
     return extractLinkedPages(self.get(get_redirect=True), self, withImageLinks)
 
 Page.linkedPages = linkedPages
 
 """
-getRevision ============================================================
-"""
-
-def getRevision(self, revid):
-    params = {
-        'action'   : 'query',
-        'prop'     : 'revisions',
-        'revids'   : revid,
-    }
-    return Page(self, query.GetData(params, self)['query']['pages'].itervalues().next()['title'])
-    
-Site.getRevision = getRevision
-
-"""
-recentchanges ==========================================================
+recentchanges
+=============
+Override function recentchanges to get all revisions, not all distinct pages.
 """
 
 def recentchanges(self, number=100, rcstart=None, rcend=None, rcshow=None,
                   rcdir='older', rctype='edit|new', namespace=None,
                   includeredirects=True, repeat=False, user=None,
                   returndict=False):
+    """Override function recentchanges."""
     if rctype is None:
         rctype = 'edit|new'
     params = {
@@ -154,96 +166,46 @@ def recentchanges(self, number=100, rcstart=None, rcend=None, rcshow=None,
 Site.recentchanges = recentchanges
 
 """
-QuickCntRev ============================================================
+Just a helper function for returning databaseName of site.
 """
-def quickCntRev(self):
-    params = {
-        'action': 'query',
-        'prop': 'revisions',
-        'titles': self.title(),
-        'rvprop': 'ids',
-        'rvlimit': 5000,
-    }
-    cnt = 0
-    while True:
-        dat = query.GetData(params, self.site)
-        cnt += len(dat['query']['pages'].itervalues().next()['revisions'])
-        if 'query-continue' in dat:
-            params['rvstartid'] = dat['query-continue']['revisions']['rvcontinue']
-        else:
-            break
-    return cnt
+def databaseName(self):
+    return self.family.dbName(self.lang).split('_')[0].replace(u"-", u"_")
 
-Page.quickCntRev = quickCntRev
+Site.databaseName = databaseName
 
 """
-getLang ================================================================
+Get page in given language. Use information from Wikidata first. 
+If there is no Wikidata page, use local interwiki, and if there is 
+no interwiki, return None.
+
+Note that this function is used frequently. It should be a method
+in class Page.
 """
 def getLang(self, lang):
-    for page in self.interwiki():
-        if page.site().language() == lang:
-            return page
-
+    try:
+        langsite = pywikibot.getSite(code=lang)
+        return pywikibot.Page(langsite, 
+                pywikibot.DataPage(self).get()['links']
+                [langsite.databaseName()])
+    except:
+        pass
+        
+    try:
+        for page in self.interwiki():
+            if page.site().language() == lang:
+                return page
+    except:
+        pass
+        
 Page.getLang = getLang
 
-"""
-getbytitle
-"""
-def getbytitle(self, search, sysop=False, sites="thwiki", getiw=False):
-    """API module to search for entities.
+def reset(self):
+    site = self.site()
+    title = self.title()
+    dic = vars(self)
+    for i in dic.keys():
+        del dic[i]
+        
+    self.__init__(site, title)
 
-    (independent of page object and could thus be extracted from this class)
-    """
-    params = {
-        'action': 'wbgetentities',
-        'titles': search,
-        'sites': sites,
-    }
-    # retrying is done by query.GetData
-    data = query.GetData(params, self.site(), sysop=sysop)
-
-    if 'error' in data:
-        raise RuntimeError("API query error: %s" % data)
-    pageInfo = data['entities'].itervalues().next()
-    if 'missing' in pageInfo:
-        raise NoPage(self.site(), unicode(self),
-"Page does not exist. In rare cases, if you are certain the page does exist, look into overriding family.RversionTab")
-    elif 'invalid' in pageInfo:
-        raise BadTitle('BadTitle: %s' % self)
-    
-    if getiw:
-        return data['entities'].keys()[0], data['entities'].itervalues().next()['sitelinks']
-    else:
-        return data['entities'].keys()[0]
-
-def __init__(self, source, title=u"!dummy", *args, **kwargs):
-    if isinstance(source, basestring):
-        source = getSite(source)
-    elif isinstance(source, Page):
-        title = source.title()
-        source = source.site
-    elif isinstance(source, int):
-        title = "Q%d" % source
-        source = getSite().data_repository()
-    self._originSite = source
-    self._originTitle = title
-    source = self._originSite.data_repository()
-    Page.__init__(self, source, title, *args, **kwargs)
-    if not (self._originSite == source):
-        self._title = None
-
-DataPage.__init__ = __init__
-DataPage.getbytitle = getbytitle
-
-"""
-wikidata
-"""
-site_wikidata = pywikibot.getSite('wikidata', 'wikidata')
-
-def wikidata(self):
-    page = self
-    if page.isRedirectPage():
-        page = page.getRedirectTarget()
-    return pywikibot.DataPage(site_wikidata).getbytitle(page.title(), 
-                                    sites=page.site().code + "wiki", getiw=True)
-Page.wikidata = wikidata
+Page.reset = reset
