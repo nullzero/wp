@@ -15,8 +15,8 @@ def glob():
     patWikitable = re2.re2(ur"(?s)\{\|.*?wikitable.*?\|\}")
     patRowspan = re2.re2(ur"rowspan\ *=\ *\"(.*?)\"")
     patHeaderStyle = re2.re2(ur"^.*?\|")
-    badkeywords = [u"คู่กับ", u"นางเอก", u"นางร้าย", u"ตัวเอก", u"ตัวร้าย", u"พระเอก", u"ประพันธ์โดย", u"บทโดย", u"บทประพันธ์", u"ออกอากาศ", u"บริษัท"]
-    prebadkeywords = [ur"\(", ur"\[\[", ur"<[^>]>"]
+    badkeywords = [u"แสดงคู่กับ", u"คู่กับ", u"ผลิตโดย", u"นางเอก", u"นางร้าย", u"ตัวเอก", u"ตัวร้าย", u"พระเอก", u"ประพันธ์โดย", u"บทโดย", u"บทประพันธ์", u"ออกอากาศ", u"บริษัท"]
+    prebadkeywords = [ur"\(", ur"\[\[", ur"<[^>]>", "<br/?>"]
     patpost = re2.re2(ur"\s*" + re2.sep(prebadkeywords) + ur"*\s*" + re2.sep(badkeywords) + u".*|'''")
 
 def extractHeader(s):

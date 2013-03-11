@@ -69,7 +69,7 @@ def pre(name, lock = False):
     fullname = name
     pywikibot.output(u"The script " + fullname + u". Start at " + getTime())
     if lock:
-        lockfile = os.path.join("/tmp", basescript + ".wp.lock")
+        lockfile = os.path.abspath("../../tmp/" + basescript + ".py")
         if os.path.exists(lockfile):
             error(u"Lockfile found. Unable to execute the script.")
             pywikibot.stopme()

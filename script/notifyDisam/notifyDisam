@@ -26,6 +26,11 @@ def notify(user, dic, insertDisamT):
     pywikibot.output(u"notifying %s..." % user)
     if user in conf.exceptionList:
         return
+    userobj = userlib.User(site, user)
+    if not userobj.isRegistered():
+        return
+    if 'bot' in userobj.groups():
+        return
     usertalk = pywikibot.Page(site, u"User talk:" + user)
     
     for title, linkset in dic.items():
@@ -58,16 +63,7 @@ def notify(user, dic, insertDisamT):
     pywikibot.output(u">>> done!")
 
 def _debug():
-    container[u"Jbot"] = {}
-    container[u"Jbot"][u"A"] = set()
-    container[u"Jbot"][u"A"].add(u"อักษรภาพ")
-    container[u"Jbot"][u"A"].add(u"วัว")
-    container[u"Jbot"][u"A"].add(u"nonexist")
-    container[u"Jbot"][u"Z"] = set()
-    container[u"Jbot"][u"Z"].add(u"nonexist")
-    container[u"Jbot"][u"Z"].add(u"nonexist!")
-    notify(u"Jbot", container[u"Jbot"],
-            pywikibot.Page(site, conf.messageTemplate).get())
+    pass
 
 def save(user, title, links):
     pywikibot.output(u">>> save %s %s" % (user, title))
@@ -94,7 +90,7 @@ def check(revision):
     
     try:
         contentnew = page.get()
-    except IsRedirectPage:
+    except pywikibot.IsRedirectPage:
         return
         
     contentold = u""
